@@ -1,92 +1,35 @@
-let itens = [];
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>App Pedidos</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
 
-function calcular() {
-  const largura = parseFloat(document.getElementById("largura").value);
-  const altura = parseFloat(document.getElementById("altura").value);
-  const qtd = parseInt(document.getElementById("quantidade").value);
+<h2>Novo Pedido</h2>
 
-  if (!largura || !altura || !qtd) {
-    alert("Preencha todos os campos!");
-    return;
-  }
+<input type="number" id="largura" placeholder="Largura (cm)">
+<input type="number" id="altura" placeholder="Altura (cm)">
+<input type="number" id="quantidade" placeholder="Quantidade">
 
-  const area = largura * altura;
-  const areaTotal = area * qtd;
+<br><br>
 
-  const precoChapa = sistema.configuracao.precoChapa;
-  const areaChapa = sistema.configuracao.larguraChapa * sistema.configuracao.alturaChapa;
+<button onclick="calcular()">Calcular</button>
+<button onclick="adicionarItem()">Adicionar Item</button>
 
-  const custoCm2 = precoChapa / areaChapa;
-  const custoTotal = areaTotal * custoCm2;
+<h3>Itens do Pedido</h3>
+<div id="listaItens"></div>
 
-  document.getElementById("resultado").innerHTML =
-    `Área total: ${areaTotal} cm² <br>
-     Custo estimado: R$ ${custoTotal.toFixed(2)}`;
-}
+<br>
+<button onclick="salvarPedido()">Salvar Pedido</button>
 
-function adicionarItem() {
-  const largura = parseFloat(document.getElementById("largura").value);
-  const altura = parseFloat(document.getElementById("altura").value);
-  const qtd = parseInt(document.getElementById("quantidade").value);
+<h3>Resultado</h3>
+<div id="resultado"></div>
 
-  if (!largura || !altura || !qtd) {
-    alert("Preencha todos os campos!");
-    return;
-  }
+<!-- ⚠️ CORRIGIDO AQUI -->
+<script src="db.js"></script>
+<script src="js/app.js"></script>
 
-  const area = largura * altura;
-  const areaTotal = area * qtd;
-
-  const precoChapa = sistema.configuracao.precoChapa;
-  const areaChapa = sistema.configuracao.larguraChapa * sistema.configuracao.alturaChapa;
-
-  const custoCm2 = precoChapa / areaChapa;
-  const custoTotal = areaTotal * custoCm2;
-
-  const item = {
-    largura,
-    altura,
-    qtd,
-    areaTotal,
-    custoTotal
-  };
-
-  itens.push(item);
-  atualizarLista();
-}
-
-function atualizarLista() {
-  let html = "";
-
-  itens.forEach((item, i) => {
-    html += `
-      <div style="border:1px solid #000; margin:10px; padding:10px;">
-        Item ${i + 1}<br>
-        ${item.qtd} un - ${item.largura}x${item.altura} cm<br>
-        Área: ${item.areaTotal} cm²<br>
-        Custo: R$ ${item.custoTotal.toFixed(2)}
-      </div>
-    `;
-  });
-
-  document.getElementById("listaItens").innerHTML = html;
-}
-
-function salvarPedido() {
-  let pedidos = JSON.parse(localStorage.getItem("pedidos")) || [];
-
-  const novoPedido = {
-    numero: pedidos.length + 1,
-    data: new Date().toLocaleDateString(),
-    itens: itens
-  };
-
-  pedidos.push(novoPedido);
-  localStorage.setItem("pedidos", JSON.stringify(pedidos));
-
-  alert("Pedido salvo!");
-
-  itens = [];
-  atualizarLista();
-  document.getElementById("resultado").innerHTML = "";
-}
+</body>
+</html>
