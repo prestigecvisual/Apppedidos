@@ -1,23 +1,39 @@
+// carregar produtos no select
+window.onload = function () {
+  const select = document.getElementById("produto");
+
+  sistema.produtos.forEach((prod, index) => {
+    const option = document.createElement("option");
+    option.value = index;
+    option.textContent = prod.nome + " - R$ " + prod.preco;
+    select.appendChild(option);
+  });
+};
+
 function calcular() {
+  const produtoIndex = document.getElementById("produto").value;
   const largura = parseFloat(document.getElementById("largura").value);
   const altura = parseFloat(document.getElementById("altura").value);
   const quantidade = parseInt(document.getElementById("quantidade").value);
 
-  if (!largura || !altura || !quantidade) {
+  if (produtoIndex === "" || !largura || !altura || !quantidade) {
     alert("Preencha todos os campos!");
     return;
   }
 
-  const area = (largura * altura) / 10000; // cm² para m²
-  const precoUnitario = sistema.precoBase + (area * sistema.multiplicador * 100);
+  const produto = sistema.produtos[produtoIndex];
+
+  const area = (largura * altura) / 10000;
+  const precoUnitario = produto.preco * area * 10;
   const total = precoUnitario * quantidade;
 
   document.getElementById("resultado").innerHTML =
-    `Área: ${area.toFixed(2)} m² <br>
+    `Produto: ${produto.nome} <br>
+     Área: ${area.toFixed(2)} m² <br>
      Preço unitário: R$ ${precoUnitario.toFixed(2)} <br>
      Total: R$ ${total.toFixed(2)}`;
 
-  return { largura, altura, quantidade, precoUnitario, total };
+  return { produto: produto.nome, largura, altura, quantidade, total };
 }
 
 function adicionarItem() {
@@ -35,7 +51,7 @@ function atualizarLista() {
   sistema.carrinho.forEach((item, index) => {
     lista.innerHTML += `
       <div>
-        Item ${index + 1} - ${item.largura}x${item.altura} cm | 
+        ${item.produto} - ${item.largura}x${item.altura} cm | 
         Qtd: ${item.quantidade} | 
         Total: R$ ${item.total.toFixed(2)}
       </div>
@@ -53,7 +69,7 @@ function salvarPedido() {
   let resumo = "Pedido:\n\n";
 
   sistema.carrinho.forEach((item, i) => {
-    resumo += `Item ${i + 1}: ${item.largura}x${item.altura} cm | Qtd: ${item.quantidade} | R$ ${item.total.toFixed(2)}\n`;
+    resumo += `${item.produto} - ${item.largura}x${item.altura} cm | Qtd: ${item.quantidade} | R$ ${item.total.toFixed(2)}\n`;
     totalGeral += item.total;
   });
 
@@ -61,7 +77,6 @@ function salvarPedido() {
 
   alert(resumo);
 
-  // limpar carrinho
   sistema.carrinho = [];
   atualizarLista();
   document.getElementById("resultado").innerHTML = "";
