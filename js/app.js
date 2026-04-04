@@ -1,92 +1,68 @@
-let itens = [];
-
 function calcular() {
   const largura = parseFloat(document.getElementById("largura").value);
   const altura = parseFloat(document.getElementById("altura").value);
-  const qtd = parseInt(document.getElementById("quantidade").value);
+  const quantidade = parseInt(document.getElementById("quantidade").value);
 
-  if (!largura || !altura || !qtd) {
+  if (!largura || !altura || !quantidade) {
     alert("Preencha todos os campos!");
     return;
   }
 
-  const area = largura * altura;
-  const areaTotal = area * qtd;
-
-  const precoChapa = sistema.configuracao.precoChapa;
-  const areaChapa = sistema.configuracao.larguraChapa * sistema.configuracao.alturaChapa;
-
-  const custoCm2 = precoChapa / areaChapa;
-  const custoTotal = areaTotal * custoCm2;
+  const area = (largura * altura) / 10000; // cm² para m²
+  const precoUnitario = sistema.precoBase + (area * sistema.multiplicador * 100);
+  const total = precoUnitario * quantidade;
 
   document.getElementById("resultado").innerHTML =
-    `Área total: ${areaTotal} cm² <br>
-     Custo estimado: R$ ${custoTotal.toFixed(2)}`;
+    `Área: ${area.toFixed(2)} m² <br>
+     Preço unitário: R$ ${precoUnitario.toFixed(2)} <br>
+     Total: R$ ${total.toFixed(2)}`;
+
+  return { largura, altura, quantidade, precoUnitario, total };
 }
 
 function adicionarItem() {
-  const largura = parseFloat(document.getElementById("largura").value);
-  const altura = parseFloat(document.getElementById("altura").value);
-  const qtd = parseInt(document.getElementById("quantidade").value);
+  const dados = calcular();
+  if (!dados) return;
 
-  if (!largura || !altura || !qtd) {
-    alert("Preencha todos os campos!");
-    return;
-  }
-
-  const area = largura * altura;
-  const areaTotal = area * qtd;
-
-  const precoChapa = sistema.configuracao.precoChapa;
-  const areaChapa = sistema.configuracao.larguraChapa * sistema.configuracao.alturaChapa;
-
-  const custoCm2 = precoChapa / areaChapa;
-  const custoTotal = areaTotal * custoCm2;
-
-  const item = {
-    largura,
-    altura,
-    qtd,
-    areaTotal,
-    custoTotal
-  };
-
-  itens.push(item);
+  sistema.carrinho.push(dados);
   atualizarLista();
 }
 
 function atualizarLista() {
-  let html = "";
+  const lista = document.getElementById("listaItens");
+  lista.innerHTML = "";
 
-  itens.forEach((item, i) => {
-    html += `
-      <div style="border:1px solid #000; margin:10px; padding:10px;">
-        Item ${i + 1}<br>
-        ${item.qtd} un - ${item.largura}x${item.altura} cm<br>
-        Área: ${item.areaTotal} cm²<br>
-        Custo: R$ ${item.custoTotal.toFixed(2)}
+  sistema.carrinho.forEach((item, index) => {
+    lista.innerHTML += `
+      <div>
+        Item ${index + 1} - ${item.largura}x${item.altura} cm | 
+        Qtd: ${item.quantidade} | 
+        Total: R$ ${item.total.toFixed(2)}
       </div>
     `;
   });
-
-  document.getElementById("listaItens").innerHTML = html;
 }
 
 function salvarPedido() {
-  let pedidos = JSON.parse(localStorage.getItem("pedidos")) || [];
+  if (sistema.carrinho.length === 0) {
+    alert("Nenhum item no pedido!");
+    return;
+  }
 
-  const novoPedido = {
-    numero: pedidos.length + 1,
-    data: new Date().toLocaleDateString(),
-    itens: itens
-  };
+  let totalGeral = 0;
+  let resumo = "Pedido:\n\n";
 
-  pedidos.push(novoPedido);
-  localStorage.setItem("pedidos", JSON.stringify(pedidos));
+  sistema.carrinho.forEach((item, i) => {
+    resumo += `Item ${i + 1}: ${item.largura}x${item.altura} cm | Qtd: ${item.quantidade} | R$ ${item.total.toFixed(2)}\n`;
+    totalGeral += item.total;
+  });
 
-  alert("Pedido salvo!");
+  resumo += `\nTotal Geral: R$ ${totalGeral.toFixed(2)}`;
 
-  itens = [];
+  alert(resumo);
+
+  // limpar carrinho
+  sistema.carrinho = [];
   atualizarLista();
   document.getElementById("resultado").innerHTML = "";
 }
