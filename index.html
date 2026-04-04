@@ -14,7 +14,13 @@
 <input type="number" id="quantidade" placeholder="Quantidade">
 
 <button onclick="calcular()">Calcular</button>
+<button onclick="adicionarItem()">Adicionar Item</button>
 
+<h3>Itens do Pedido</h3>
+<div id="listaItens"></div>
+
+<br>
+<button onclick="salvarPedido()">Salvar Pedido</button>
 <div id="resultado"></div>
 
 <script src="data/db.js"></script>
