@@ -63,9 +63,6 @@ function salvarPedido() {
   if (sistema.carrinho.length === 0) {
     alert("Nenhum item no pedido!");
     return;
-    const telefone = "5511922018290"; // seu número
-const url = `https://wa.me/${telefone}?text=${encodeURIComponent(resumo)}`;
-window.open(url, "_blank");
   }
 
   let totalGeral = 0;
@@ -78,8 +75,12 @@ window.open(url, "_blank");
 
   resumo += `\nTotal Geral: R$ ${totalGeral.toFixed(2)}`;
 
-  alert(resumo);
+  // ✅ abrir WhatsApp com pedido
+  const telefone = "5511922018290"; // coloque seu número
+  const url = `https://wa.me/${telefone}?text=${encodeURIComponent(resumo)}`;
+  window.open(url, "_blank");
 
+  // limpar carrinho e tela
   sistema.carrinho = [];
   atualizarLista();
   document.getElementById("resultado").innerHTML = "";
