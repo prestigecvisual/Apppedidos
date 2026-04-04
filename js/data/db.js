@@ -1,8 +1,5 @@
-let sistema = {
-  pedidos: [],
-  configuracao: {
-    precoChapa: 150,
-    larguraChapa: 100,
-    alturaChapa: 100
-  }
+const sistema = {
+  precoBase: 10,
+  multiplicador: 0.05,
+  carrinho: []
 };
