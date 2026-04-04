@@ -52,7 +52,6 @@ function adicionarItem() {
   };
 
   itens.push(item);
-
   atualizarLista();
 }
 
@@ -62,9 +61,9 @@ function atualizarLista() {
   itens.forEach((item, i) => {
     html += `
       <div style="border:1px solid #000; margin:10px; padding:10px;">
-        Item ${i + 1} <br>
-        ${item.qtd} un - ${item.largura}x${item.altura} cm <br>
-        Área: ${item.areaTotal} cm² <br>
+        Item ${i + 1}<br>
+        ${item.qtd} un - ${item.largura}x${item.altura} cm<br>
+        Área: ${item.areaTotal} cm²<br>
         Custo: R$ ${item.custoTotal.toFixed(2)}
       </div>
     `;
@@ -79,15 +78,15 @@ function salvarPedido() {
   const novoPedido = {
     numero: pedidos.length + 1,
     data: new Date().toLocaleDateString(),
-    itens
+    itens: itens
   };
 
   pedidos.push(novoPedido);
-
   localStorage.setItem("pedidos", JSON.stringify(pedidos));
 
   alert("Pedido salvo!");
 
   itens = [];
   atualizarLista();
+  document.getElementById("resultado").innerHTML = "";
 }
