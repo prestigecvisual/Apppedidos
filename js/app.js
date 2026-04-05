@@ -1,4 +1,44 @@
 window.onload = function () {
+  const select = document.getElementById("produto");
+  sistema.produtos.forEach((prod, index) => {
+    const option = document.createElement("option");
+    option.value = index;
+    option.textContent = `${prod.nome} - R$ ${prod.preco}`;
+    select.appendChild(option);
+  });
+  atualizarListaOrcamentos();
+};
+
+function calcular() {
+  const produtoIndex = document.getElementById("produto").value;
+  const largura = parseFloat(document.getElementById("largura").value);
+  const altura = parseFloat(document.getElementById("altura").value);
+  const quantidade = parseInt(document.getElementById("quantidade").value);
+
+  if (produtoIndex === "" || !largura || !altura || !quantidade) {
+    alert("Preencha todos os campos do produto!");
+    return;
+  }
+
+  const produto = sistema.produtos[produtoIndex];
+  const area = (largura * altura) / 10000;
+  const precoUnitario = produto.preco * area * 10;
+  const total = precoUnitario * quantidade;
+
+  document.getElementById("resultado").innerHTML =
+    `Produto: ${produto.nome} <br>Área: ${area.toFixed(2)} m² <br>Preço unitário: R$ ${precoUnitario.toFixed(2)} <br>Total: R$ ${total.toFixed(2)}`;
+
+  return { produto: produto.nome, largura, altura, quantidade, total };
+}
+
+function adicionarItem() {
+  const dados = calcular();
+  if (!dados) return;
+  sistema.carrinho.push(dados);
+  atualizarListaItens();
+}
+
+function atualizarListaItens() {
   const lista = document.getElementById("listaItens");
   lista.innerHTML = "";
   sistema.carrinho.forEach((item, index) => {
