@@ -1,53 +1,141 @@
+/* style.css */
+
+/* Reset básico */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
 body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background: #f5f5f5;
+  background-color: #f4f4f4;
+  color: #333;
+  line-height: 1.5;
+  padding: 20px;
 }
+
 header {
-    background: #023e8a;
-    color: white;
-    padding: 20px;
-    text-align: center;
+  display: flex;
+  align-items: center;
+  margin-bottom: 30px;
 }
-.logo {
-    max-height: 50px;
+
+header img {
+  margin-right: 20px;
 }
-main {
-    padding: 20px;
+
+header h1 {
+  font-size: 24px;
+  color: #222;
 }
+
+/* Seções */
 section {
-    background: #fff;
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 10px;
+  background-color: #fff;
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
-input, select, button {
-    padding: 8px;
-    margin: 5px 0;
+
+section h2 {
+  margin-bottom: 10px;
+  color: #444;
 }
-.totais p {
-    font-weight: bold;
+
+/* Labels e inputs */
+label {
+  display: inline-block;
+  width: 120px;
+  margin-bottom: 5px;
+  font-weight: bold;
 }
-.cards {
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
+
+input, select {
+  padding: 5px 8px;
+  margin-bottom: 10px;
+  width: calc(100% - 130px);
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
-.card {
-    flex: 1 1 180px;
-    background: #fff;
-    text-align: center;
-    padding: 15px;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+
+button {
+  padding: 8px 15px;
+  margin-top: 5px;
+  margin-right: 5px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
-.card h3 {
-    margin-bottom: 10px;
-    color: #023e8a;
+
+button:hover {
+  background-color: #0056b3;
 }
-.card p {
-    font-size: 24px;
-    font-weight: bold;
-    color: #0077b6;
+
+/* Carrinho e listas */
+#listaItens, #listaOrcamentos, #listaPedidos {
+  padding: 10px;
+  background-color: #eef2f5;
+  border-radius: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+#listaItens div, #listaOrcamentos div, #listaPedidos div {
+  padding: 5px;
+  border-bottom: 1px solid #ccc;
+}
+
+/* Totais */
+#frete, #desconto, #totalGeral {
+  font-weight: bold;
+}
+
+/* Dashboard */
+#dashboard {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.dashboard-box {
+  background-color: #007bff;
+  color: #fff;
+  padding: 15px;
+  border-radius: 6px;
+  flex: 1 1 30%;
+  margin: 5px;
+  text-align: center;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Resultado cálculo */
+#resultado {
+  margin-top: 10px;
+  padding: 8px;
+  background-color: #e9ecef;
+  border-radius: 4px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  label {
+    display: block;
+    width: 100%;
+    margin-bottom: 2px;
+  }
+
+  input, select {
+    width: 100%;
+  }
+
+  .dashboard-box {
+    flex: 1 1 100%;
+  }
 }
