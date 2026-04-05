@@ -29,8 +29,8 @@
   <input type="text" id="clienteEndereco" placeholder="Endereço completo">
 </section>
 
-<section class="pedido">
-  <h3>Produtos</h3>
+<section class="produto">
+  <h3>Selecionar Produto</h3>
   <select id="produto">
     <option value="">Selecione o produto</option>
   </select>
@@ -40,6 +40,13 @@
   <br><br>
   <button onclick="calcular()">Calcular</button>
   <button onclick="adicionarItem()">Adicionar Item</button>
+</section>
+
+<section class="produto-personalizado">
+  <h3>Criar Produto Personalizado</h3>
+  <input type="text" id="novoProdutoNome" placeholder="Nome do produto">
+  <input type="number" id="novoProdutoPreco" placeholder="Preço base (R$)">
+  <button onclick="adicionarProdutoPersonalizado()">Adicionar Produto</button>
 </section>
 
 <section class="itens">
@@ -55,6 +62,11 @@
 <section class="orcamentos">
   <h3>Orçamentos Salvos</h3>
   <div id="listaOrcamentos"></div>
+</section>
+
+<section class="pedidos">
+  <h3>Pedidos Gerados</h3>
+  <div id="listaPedidos"></div>
 </section>
 
 <script src="js/db.js"></script>
