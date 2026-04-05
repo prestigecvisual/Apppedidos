@@ -1,7 +1,7 @@
 window.onload = () => {
     popularProdutos();
-    atualizarDataRef();
     atualizarListaOrcamentos();
+    atualizarListaPedidos();
     calcularTotais();
 };
 
@@ -30,9 +30,26 @@ function popularProdutos() {
     });
 }
 
-function toggleMedidas() {
-    const p = sistema.produtos[document.getElementById("produto").value];
-    document.getElementById("medidasInput").style.display = (p.tipo === "unid") ? "none" : "flex";
+// ================= GERADORES =================
+
+function gerarNumeroOrcamento() {
+    const d = new Date();
+    return `ORC-${d.getFullYear()}${d.getMonth()+1}${d.getDate()}-${d.getHours()}${d.getMinutes()}`;
+}
+
+function gerarNumeroPedido() {
+    const d = new Date();
+
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+
+    const base = `${mm}${dd}${yy}`;
+
+    const pedidosHoje = sistema.pedidos.filter(p => p.numero?.startsWith(base));
+    const sequencia = String(pedidosHoje.length + 1).padStart(3, '0');
+
+    return base + sequencia;
 }
 
 // ================= CARRINHO =================
@@ -50,7 +67,7 @@ function adicionarItem() {
         largura = parseFloat(document.getElementById("largura").value);
         altura = parseFloat(document.getElementById("altura").value);
 
-        if (isNaN(largura) || isNaN(altura)) return alert("Preencha largura e altura!");
+        if (isNaN(largura) || isNaN(altura)) return alert("Preencha medidas!");
 
         t = (largura * altura / 10000) * p.preco * q;
         m = `${largura}x${altura}cm`;
@@ -58,71 +75,24 @@ function adicionarItem() {
         t = p.preco * q;
     }
 
-    sistema.carrinho.push({
-        nome: p.nome,
-        medida: m,
-        qtd: q,
-        total: t,
-        largura,
-        altura
-    });
+    sistema.carrinho.push({ nome: p.nome, medida: m, qtd: q, total: t, largura, altura });
 
     atualizarCarrinho();
     calcularTotais();
 }
 
-// ================= FUNÇÕES CARRINHO =================
+// ================= CARRINHO FUNÇÕES =================
 
 function removerItem(index) {
-    if (confirm("Remover este item?")) {
+    if (confirm("Remover item?")) {
         sistema.carrinho.splice(index, 1);
         atualizarCarrinho();
         calcularTotais();
     }
 }
 
-function alterarQuantidade(index, novaQtd) {
-    novaQtd = parseInt(novaQtd);
-    if (isNaN(novaQtd) || novaQtd <= 0) return;
-
-    const item = sistema.carrinho[index];
-    item.qtd = novaQtd;
-
-    recalcularItem(item);
-    atualizarCarrinho();
-    calcularTotais();
-}
-
-function alterarMedidas(index, largura, altura) {
-    largura = parseFloat(largura);
-    altura = parseFloat(altura);
-
-    if (isNaN(largura) || isNaN(altura)) return;
-
-    const item = sistema.carrinho[index];
-
-    item.medida = `${largura}x${altura}cm`;
-    item.largura = largura;
-    item.altura = altura;
-
-    recalcularItem(item);
-    atualizarCarrinho();
-    calcularTotais();
-}
-
-function recalcularItem(item) {
-    const produto = sistema.produtos.find(p => p.nome === item.nome);
-    if (!produto) return;
-
-    if (produto.tipo === "m2" && item.largura && item.altura) {
-        item.total = (item.largura * item.altura / 10000) * produto.preco * item.qtd;
-    } else {
-        item.total = produto.preco * item.qtd;
-    }
-}
-
 function limparCarrinho() {
-    if (confirm("Deseja limpar todo o carrinho?")) {
+    if (confirm("Limpar carrinho?")) {
         sistema.carrinho = [];
         atualizarCarrinho();
         calcularTotais();
@@ -131,40 +101,15 @@ function limparCarrinho() {
 
 function atualizarCarrinho() {
     const l = document.getElementById("listaItens");
+    if (!l) return;
+
     l.innerHTML = "";
 
     sistema.carrinho.forEach((i, index) => {
-        const isM2 = i.medida.includes("x");
-
         l.innerHTML += `
-        <div style="border:1px solid #e2e8f0; padding:10px; border-radius:8px; margin-bottom:8px;">
-            
-            <div style="font-size:0.9em; margin-bottom:5px;">
-                <b>${i.nome}</b>
-            </div>
-
-            ${isM2 ? `
-                <div style="display:flex; gap:5px; margin-bottom:5px;">
-                    <input type="number" value="${i.largura || ''}" 
-                        onchange="alterarMedidas(${index}, this.value, ${i.altura || 0})">
-                    
-                    <input type="number" value="${i.altura || ''}" 
-                        onchange="alterarMedidas(${index}, ${i.largura || 0}, this.value)">
-                </div>
-            ` : ""}
-
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                
-                <input type="number" value="${i.qtd}" min="1"
-                    onchange="alterarQuantidade(${index}, this.value)">
-
-                <span>R$ ${i.total.toFixed(2)}</span>
-
-                <button onclick="removerItem(${index})"
-                    style="background:#ef4444;color:white;padding:5px 8px;border-radius:6px;">
-                    ❌
-                </button>
-            </div>
+        <div style="border:1px solid #ddd;padding:10px;margin:5px 0;">
+            ${i.nome} (${i.medida}) x${i.qtd} - R$ ${i.total.toFixed(2)}
+            <button onclick="removerItem(${index})">❌</button>
         </div>`;
     });
 }
@@ -175,47 +120,29 @@ function calcularTotais() {
     let sub = 0;
     sistema.carrinho.forEach(i => sub += i.total);
 
-    const cep = document.getElementById("clienteCEP").value.replace(/\D/g, "");
-
-    let f = 0;
-    if (cep.length === 8) {
-        const inicio = parseInt(cep.substring(0, 2));
-        if (inicio <= 9) f = 15;
-        else if (inicio <= 19) f = 25;
-        else f = 40;
-    }
-
-    const pg = document.getElementById("formaPagamento").value;
+    const pg = document.getElementById("formaPagamento")?.value;
 
     let tx = 0;
     if (pg === "pix") tx = -(sub * 0.03);
     else if (pg === "credito_3x") tx = sub * 0.06;
     else if (pg === "credito_5x") tx = sub * 0.07;
 
-    document.getElementById("frete").textContent = f.toFixed(2);
-    document.getElementById("desconto").textContent = Math.abs(tx).toFixed(2);
-    document.getElementById("totalGeral").textContent = (sub + f + tx).toFixed(2);
+    document.getElementById("totalGeral").textContent = (sub + tx).toFixed(2);
 }
 
 // ================= ORÇAMENTO =================
 
-function atualizarDataRef() {
-    const d = new Date();
-    d.setHours(d.getHours() + 1);
-
-    const ref = `${d.getFullYear().toString().slice(-2)}/${d.getDate()}/${d.getHours()}h${d.getMinutes()}`;
-    document.getElementById("numeroOrcamento").textContent = ref;
-    return ref;
-}
-
 function salvarOrcamento() {
     if (sistema.carrinho.length === 0) return alert("Carrinho vazio!");
 
+    const numero = gerarNumeroOrcamento();
+
     sistema.orcamentos.push({
+        numero,
         cliente: document.getElementById("clienteNome").value || "Cliente",
+        itens: [...sistema.carrinho],
         total: document.getElementById("totalGeral").textContent,
-        data: atualizarDataRef(),
-        status: "Aguardando"
+        status: "Orçamento"
     });
 
     sistema.carrinho = [];
@@ -225,55 +152,64 @@ function salvarOrcamento() {
     atualizarListaOrcamentos();
 }
 
-// ================= APROVAÇÃO =================
+// ================= CONVERTER =================
 
 function aprovarOrcamento(index) {
     const orc = sistema.orcamentos[index];
     if (!orc) return;
 
-    orc.status = "Aprovado";
+    const numeroPedido = gerarNumeroPedido();
 
     sistema.pedidos.push({
         ...orc,
-        dataAprovacao: new Date().toLocaleDateString()
+        numero: numeroPedido,
+        status: "Produção",
+        data: new Date().toLocaleDateString()
     });
+
+    sistema.orcamentos.splice(index, 1);
 
     salvarNoNavegador();
     atualizarListaOrcamentos();
+    atualizarListaPedidos();
 }
 
-// ================= LISTA =================
+// ================= PRODUÇÃO =================
+
+function atualizarStatusPedido(index, novoStatus) {
+    sistema.pedidos[index].status = novoStatus;
+    salvarNoNavegador();
+    atualizarListaPedidos();
+}
+
+// ================= LISTAS =================
 
 function atualizarListaOrcamentos() {
     const div = document.getElementById("listaOrcamentos");
     if (!div) return;
 
-    div.innerHTML = "<strong>Histórico:</strong><br>";
+    div.innerHTML = "<strong>Orçamentos:</strong><br>";
 
-    if (sistema.orcamentos.length > 0) {
-        sistema.orcamentos.slice(-5).reverse().forEach((o, i) => {
-            div.innerHTML += `
-                ${o.cliente} - R$ ${o.total} (${o.status})
-                <button onclick="aprovarOrcamento(${i})">✔</button><br>`;
-        });
-    } else {
-        div.innerHTML += "Nenhum orçamento salvo.";
-    }
+    sistema.orcamentos.forEach((o, i) => {
+        div.innerHTML += `
+        #${o.numero} - ${o.cliente} - R$ ${o.total}
+        <button onclick="aprovarOrcamento(${i})">✔ Converter</button><br>`;
+    });
 }
 
-// ================= WHATSAPP =================
+function atualizarListaPedidos() {
+    const div = document.getElementById("listaPedidos");
+    if (!div) return;
 
-function enviarWhatsApp() {
-    let msg = "🧾 *Orçamento Prestige Comunicação Visual*\n\n";
+    div.innerHTML = "<strong>Pedidos:</strong><br>";
 
-    msg += `👤 Cliente: ${document.getElementById("clienteNome").value}\n\n`;
-
-    sistema.carrinho.forEach(i => {
-        msg += `• ${i.nome} (${i.medida}) x${i.qtd} = R$ ${i.total.toFixed(2)}\n`;
+    sistema.pedidos.forEach((p, i) => {
+        div.innerHTML += `
+        #${p.numero} - ${p.cliente} - R$ ${p.total}
+        <select onchange="atualizarStatusPedido(${i}, this.value)">
+            <option ${p.status==="Produção"?"selected":""}>Produção</option>
+            <option ${p.status==="Pronto"?"selected":""}>Pronto</option>
+            <option ${p.status==="Entregue"?"selected":""}>Entregue</option>
+        </select><br>`;
     });
-
-    msg += `\n💰 Total: R$ ${document.getElementById("totalGeral").textContent}`;
-
-    const url = `https://wa.me/5511922018290?text=${encodeURIComponent(msg)}`;
-    window.open(url, "_blank");
 }
