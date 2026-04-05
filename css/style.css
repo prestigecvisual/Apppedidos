@@ -16,8 +16,7 @@ header {
 }
 
 header .logo img {
-  height: 80px;
-  width: auto;
+  height: 60px;
 }
 
 header .contato p {
@@ -44,7 +43,7 @@ button:hover {
   background: #0056b3;
 }
 
-#listaItens div, #listaOrcamentos div {
+#listaItens div, #listaOrcamentos div, #listaPedidos div {
   background: white;
   padding: 10px;
   margin: 5px 0;
