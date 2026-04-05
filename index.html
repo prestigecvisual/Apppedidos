@@ -2,63 +2,24 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>App Pedidos - Prestige Comunicação Visual</title>
+  <title>Prestige Comunicação Visual - App Pedidos</title>
   <link rel="stylesheet" href="css/style.css">
   <script src="js/db.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="js/app.js" defer></script>
 </head>
 <body>
+  <!-- Topo com logo e endereço -->
   <header>
     <img src="img/logo.png" alt="Logo" style="height:60px;">
-    <h1>Prestige Comunicação Visual - App Pedidos</h1>
+    <div>
+      Rua Brasil, 304 - CEP: 09627-000 - São Bernardo do Campo - SP<br>
+      <h1>Prestige Comunicação Visual - App Pedidos</h1>
+      <span>Orçamento Nº: <span id="numeroOrcamento">0</span></span>
+    </div>
   </header>
 
-  <!-- Nova Seção: Dashboard -->
-  <section id="dashboard">
-    <h2>Dashboard</h2>
-    <div class="dashboard-box">Orçamentos totais: <span id="totalOrcamentos">0</span></div>
-    <div class="dashboard-box">Orçamentos aprovados: <span id="totalAprovados">0</span></div>
-    <div class="dashboard-box">Pedidos: <span id="totalPedidos">0</span></div>
-  </section>
-
-  <!-- Seção: Novo Item -->
-  <section id="novoItem">
-    <h2>Novo Item</h2>
-    <label>Produto:</label>
-    <select id="produto"></select><br>
-    <label>Largura (cm):</label>
-    <input type="number" id="largura" min="1"><br>
-    <label>Altura (cm):</label>
-    <input type="number" id="altura" min="1"><br>
-    <label>Quantidade:</label>
-    <input type="number" id="quantidade" min="1" value="1"><br>
-    <button onclick="adicionarItem()">Adicionar ao Carrinho</button>
-    <div id="resultado"></div>
-  </section>
-
-  <!-- Seção: Carrinho -->
-  <section id="carrinho">
-    <h2>Carrinho</h2>
-    <div id="listaItens"></div>
-    <div>
-      <strong>Frete:</strong> R$ <span id="frete">0</span><br>
-      <strong>Desconto:</strong> R$ <span id="desconto">0</span><br>
-      <strong>Total Geral:</strong> R$ <span id="totalGeral">0</span>
-    </div>
-  </section>
-
-  <!-- Seção: Produto Personalizado -->
-  <section id="produtoPersonalizado">
-    <h2>Adicionar Produto Personalizado</h2>
-    <label>Nome:</label>
-    <input type="text" id="novoProdutoNome"><br>
-    <label>Preço:</label>
-    <input type="number" id="novoProdutoPreco" min="0"><br>
-    <button onclick="adicionarProdutoPersonalizado()">Adicionar Produto</button>
-  </section>
-
-  <!-- Seção: Cliente -->
+  <!-- Informações do Cliente -->
   <section id="cliente">
     <h2>Informações do Cliente</h2>
     <label>Nome:</label>
@@ -71,21 +32,67 @@
     <input type="text" id="clienteEndereco"><br>
     <label>CEP:</label>
     <input type="text" id="clienteCEP"><br>
+  </section>
+
+  <!-- Produtos -->
+  <section id="produtos">
+    <h2>Produto</h2>
+    <select id="produto"></select><br>
+    <label>Largura (cm):</label>
+    <input type="number" id="largura" min="1"><br>
+    <label>Altura (cm):</label>
+    <input type="number" id="altura" min="1"><br>
+    <label>Quantidade:</label>
+    <input type="number" id="quantidade" min="1" value="1"><br>
+    <button onclick="adicionarItem()">Adicionar ao Carrinho</button>
+    <div id="resultado"></div>
+  </section>
+
+  <!-- Carrinho -->
+  <section id="carrinho">
+    <h2>Carrinho</h2>
+    <div id="listaItens"></div>
+    <div>
+      <strong>Frete:</strong> R$ <span id="frete">0.00</span><br>
+      <strong>Desconto:</strong> R$ <span id="desconto">0.00</span><br>
+      <strong>Total Geral:</strong> R$ <span id="totalGeral">0.00</span>
+    </div>
+  </section>
+
+  <!-- Produto Personalizado -->
+  <section id="produtoPersonalizado">
+    <h2>Adicionar Produto Personalizado</h2>
+    <label>Nome:</label>
+    <input type="text" id="novoProdutoNome">
+    <label>Preço:</label>
+    <input type="number" id="novoProdutoPreco" min="0">
+    <button onclick="adicionarProdutoPersonalizado()">Adicionar Produto</button>
+  </section>
+
+  <!-- Botões -->
+  <section id="botoes">
     <button onclick="salvarOrcamento()">Salvar Orçamento</button>
     <button id="gerarPDF">Gerar PDF</button>
   </section>
 
-  <!-- Seção: Orçamentos -->
+  <!-- Orçamentos -->
   <section id="orcamentos">
     <h2>Orçamentos</h2>
     <div id="listaOrcamentos"></div>
   </section>
 
-  <!-- Seção: Pedidos -->
+  <!-- Pedidos -->
   <section id="pedidos">
     <h2>Pedidos</h2>
     <div id="listaPedidos"></div>
   </section>
 
+  <!-- Dashboard -->
+  <section id="dashboard">
+    <h2>Dashboard</h2>
+    <div class="dashboard-box">Orçamentos totais: <span id="totalOrcamentos">0</span></div>
+    <div class="dashboard-box">Orçamentos aprovados: <span id="totalAprovados">0</span></div>
+    <div class="dashboard-box">Pedidos: <span id="totalPedidos">0</span></div>
+  </section>
 </body>
 </html>
