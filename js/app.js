@@ -174,19 +174,36 @@ function atualizarListaOrcamentos() {
 }
 
 function atualizarListaPedidos() {
-    const div = document.getElementById("listaPedidos");
-    if (!div) return;
 
-    div.innerHTML = "";
+    const colunas = {
+        "Produção": document.getElementById("col-producao"),
+        "Em andamento": document.getElementById("col-andamento"),
+        "Finalizado": document.getElementById("col-finalizado"),
+        "Entregue": document.getElementById("col-entregue")
+    };
 
-    sistema.pedidos.forEach(p => {
-        div.innerHTML += `
-            <p>
-                <b>#${p.numero}</b><br>
-                ${p.cliente} - R$ ${p.total}
-                <br>Status: ${p.status}
-            </p>
+    // limpar colunas
+    Object.values(colunas).forEach(col => col.innerHTML = "");
+
+    sistema.pedidos.forEach((p, index) => {
+
+        const card = document.createElement("div");
+        card.style.background = "#f1f5f9";
+        card.style.padding = "10px";
+        card.style.marginBottom = "10px";
+        card.style.borderRadius = "6px";
+
+        card.innerHTML = `
+            <b>#${p.numero}</b><br>
+            ${p.cliente}<br>
+            R$ ${p.total}<br>
+            <small>${p.status}</small><br><br>
+
+            ${p.status !== "Produção" ? `<button onclick="mudarStatus(${index}, 'Produção')">⬅</button>` : ""}
+            ${p.status !== "Entregue" ? `<button onclick="mudarStatus(${index}, proximoStatus('${p.status}'))">➡</button>` : ""}
         `;
+
+        colunas[p.status]?.appendChild(card);
     });
 }
 
