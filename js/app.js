@@ -207,6 +207,22 @@ function atualizarListaPedidos() {
     });
 }
 
+function proximoStatus(atual) {
+    switch(atual) {
+        case "Produção": return "Em andamento";
+        case "Em andamento": return "Finalizado";
+        case "Finalizado": return "Entregue";
+        default: return "Produção";
+    }
+}
+
+function mudarStatus(index, novoStatus) {
+    sistema.pedidos[index].status = novoStatus;
+
+    salvarNoNavegador();
+    atualizarListaPedidos();
+}
+
 function enviarWhatsApp() {
     let msg = "🧾 *Orçamento Prestige Comunicação Visual*\n\n";
 
