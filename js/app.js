@@ -150,6 +150,8 @@ function aprovarOrcamento(index) {
 
     orc.status = "Aprovado";
 
+    status: "Produção",
+
     salvarNoNavegador();
     atualizarListaOrcamentos();
     atualizarListaPedidos();
