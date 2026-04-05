@@ -4,10 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Prestige Comunicação Visual - Sistema de Pedidos</title>
-  
   <link rel="stylesheet" href="css/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  
   <script src="js/db.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="js/app.js" defer></script>
@@ -22,14 +20,13 @@
         <p>Rua Brasil, 304 - São Bernardo do Campo - SP</p>
       </div>
       <div class="orcamento-badge">
-        <span>Orçamento Nº</span>
+        <span>Orçamento Ref.</span>
         <strong id="numeroOrcamento">0</strong>
       </div>
     </div>
   </header>
 
   <main class="container">
-    
     <section id="dashboard" class="dashboard-grid">
       <div class="db-card">
         <span class="db-title">Orçamentos</span>
@@ -46,124 +43,58 @@
     </section>
 
     <div class="content-layout">
-      
       <div class="form-column">
-        
-        <section id="cliente" class="card">
-          <div class="card-header">
-            <h2>Dados do Cliente</h2>
-          </div>
+        <section class="card">
+          <div class="card-header"><h2>Dados do Cliente</h2></div>
           <div class="grid-form">
-            <div class="input-group full">
-              <label>Nome / Empresa</label>
-              <input type="text" id="clienteNome" placeholder="Nome completo">
-            </div>
-            <div class="input-group">
-              <label>Contato (Pessoa)</label>
-              <input type="text" id="clienteContato" placeholder="Ex: João">
-            </div>
-            <div class="input-group">
-              <label>Telefone / WhatsApp</label>
-              <input type="text" id="clienteTelefone" placeholder="(11) 99999-9999">
-            </div>
-            <div class="input-group">
-              <label>CEP</label>
-              <input type="text" id="clienteCEP" placeholder="00000-000">
-            </div>
-            <div class="input-group full">
-              <label>Endereço de Entrega</label>
-              <input type="text" id="clienteEndereco" placeholder="Rua, número, bairro">
-            </div>
+            <div class="input-group full"><label>Nome / Empresa</label><input type="text" id="clienteNome"></div>
+            <div class="input-group"><label>Telefone / WhatsApp</label><input type="text" id="clienteTelefone"></div>
+            <div class="input-group"><label>CEP</label><input type="text" id="clienteCEP"></div>
+            <div class="input-group full"><label>Endereço</label><input type="text" id="clienteEndereco"></div>
           </div>
         </section>
 
-        <section id="produtos" class="card highlight">
-          <div class="card-header">
-            <h2>Calculadora de Produção</h2>
-          </div>
+        <section class="card highlight">
+          <div class="card-header"><h2>Calculadora de Produção</h2></div>
           <div class="grid-form">
-            <div class="input-group full">
-              <label>Material (Lona, Acrílico, Adesivo...)</label>
-              <select id="produto"></select>
-            </div>
-            <div class="input-group">
-              <label>Largura (cm)</label>
-              <input type="number" id="largura" min="1" value="100">
-            </div>
-            <div class="input-group">
-              <label>Altura (cm)</label>
-              <input type="number" id="altura" min="1" value="100">
-            </div>
-            <div class="input-group">
-              <label>Quantidade</label>
-              <input type="number" id="quantidade" min="1" value="1">
-            </div>
-            <div class="input-group full btn-area">
-              <button class="btn-add" onclick="adicionarItem()">+ Adicionar ao Carrinho</button>
-            </div>
+            <div class="input-group full"><label>Material</label><select id="produto"></select></div>
+            <div class="input-group"><label>Largura (cm)</label><input type="number" id="largura" value="100"></div>
+            <div class="input-group"><label>Altura (cm)</label><input type="number" id="altura" value="100"></div>
+            <div class="input-group full"><label>Quantidade</label><input type="number" id="quantidade" value="1"></div>
+            <button class="btn-add full" onclick="adicionarItem()">+ Adicionar ao Carrinho</button>
           </div>
           <div id="resultado" class="feedback-area"></div>
-        </section>
-
-        <section id="produtoPersonalizado" class="card">
-          <div class="card-header">
-            <h3>Item Extra / Serviço Adicional</h3>
-          </div>
-          <div class="grid-form row">
-            <input type="text" id="novoProdutoNome" placeholder="Nome do serviço">
-            <input type="number" id="novoProdutoPreco" placeholder="R$ Preço" min="0">
-            <button class="btn-secundary" onclick="adicionarProdutoPersonalizado()">Adicionar</button>
-          </div>
         </section>
       </div>
 
       <div class="cart-column">
-        
-        <section id="carrinho" class="card cart-card">
-          <div class="card-header">
-            <h2>Resumo do Pedido</h2>
-          </div>
-          <div id="listaItens" class="item-list">
-            </div>
+        <section class="card cart-card">
+          <div class="card-header"><h2>Resumo do Orçamento</h2></div>
+          <div id="listaItens" class="item-list"></div>
           
+          <div class="payment-area">
+            <label>Forma de Pagamento:</label>
+            <select id="formaPagamento" onchange="calcularTotais()">
+              <option value="pix">PIX / Dinheiro (5% desc.)</option>
+              <option value="debito">Débito (Valor Normal)</option>
+              <option value="credito_1x">Crédito à Vista</option>
+              <option value="credito_3x">Crédito até 3x (6% taxa)</option>
+              <option value="credito_5x">Crédito até 5x (7% taxa)</option>
+            </select>
+          </div>
+
           <div class="cart-totals">
-            <div class="total-row">
-              <span>Frete:</span>
-              <span>R$ <span id="frete">0.00</span></span>
-            </div>
-            <div class="total-row">
-              <span>Desconto:</span>
-              <span class="discount-val">- R$ <span id="desconto">0.00</span></span>
-            </div>
+            <div class="total-row"><span>Frete:</span><span>R$ <span id="frete">0.00</span></span></div>
+            <div class="total-row"><span>Taxa/Desc:</span><span>R$ <span id="desconto">0.00</span></span></div>
             <hr>
-            <div class="total-row grand-total">
-              <span>Total Geral:</span>
-              <span>R$ <span id="totalGeral">0.00</span></span>
-            </div>
+            <div class="total-row grand-total"><span>Total Geral:</span><span>R$ <span id="totalGeral">0.00</span></span></div>
           </div>
 
-          <div class="action-buttons">
-            <button class="btn-save" onclick="salvarOrcamento()">💾 Salvar Orçamento</button>
-            <button id="gerarPDF" class="btn-pdf">📄 Gerar PDF Profissional</button>
-          </div>
+          <button class="btn-save" onclick="salvarOrcamento()">💾 Salvar Orçamento</button>
+          <button id="gerarPDF" class="btn-pdf">📄 Gerar PDF</button>
         </section>
-
       </div>
     </div>
-
-    <div class="history-layout">
-      <section id="orcamentos" class="card">
-        <h2>Histórico de Orçamentos</h2>
-        <div id="listaOrcamentos" class="history-list"></div>
-      </section>
-
-      <section id="pedidos" class="card">
-        <h2>Pedidos em Produção</h2>
-        <div id="listaPedidos" class="history-list"></div>
-      </section>
-    </div>
-
   </main>
-
 </body>
 </html>
