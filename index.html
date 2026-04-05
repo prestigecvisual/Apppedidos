@@ -1,83 +1,101 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <title>App Pedidos - Prestige Comunicação Visual</title>
-  <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <meta charset="UTF-8">
+    <title>App Pedidos - Prestige Comunicação Visual</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+    <header>
+        <img src="img/logo.png" alt="Logo" class="logo">
+        <h1>App Pedidos - Prestige Comunicação Visual</h1>
+    </header>
 
-  <!-- LOGO -->
-  <header style="text-align:center; margin:20px 0;">
-    <img src="img/logo.png" alt="Logo" style="width:180px;">
-    <h1>App Pedidos</h1>
-  </header>
+    <main>
+        <!-- Seção de cadastro de produtos -->
+        <section class="produtos">
+            <h2>Adicionar Produto</h2>
+            <select id="produto"></select>
+            <input type="number" id="largura" placeholder="Largura (cm)">
+            <input type="number" id="altura" placeholder="Altura (cm)">
+            <input type="number" id="quantidade" placeholder="Quantidade">
+            <button onclick="adicionarItem()">Adicionar ao carrinho</button>
+            <div id="resultado"></div>
 
-  <!-- FORMULÁRIO DE PRODUTOS -->
-  <section style="margin:20px;">
-    <h2>Novo Produto</h2>
-    <select id="produto">
-      <option value="">Selecione um produto</option>
-    </select>
-    <input type="number" id="largura" placeholder="Largura (cm)">
-    <input type="number" id="altura" placeholder="Altura (cm)">
-    <input type="number" id="quantidade" placeholder="Quantidade">
-    <button onclick="adicionarItem()">Adicionar ao Carrinho</button>
+            <h3>Produto Personalizado</h3>
+            <input type="text" id="novoProdutoNome" placeholder="Nome do produto">
+            <input type="number" id="novoProdutoPreco" placeholder="Preço unitário">
+            <button onclick="adicionarProdutoPersonalizado()">Adicionar Produto</button>
+        </section>
 
-    <div id="resultado" style="margin-top:10px;"></div>
-  </section>
+        <!-- Carrinho -->
+        <section class="carrinho">
+            <h2>Carrinho</h2>
+            <div id="listaItens"></div>
+            <input type="text" id="clienteNome" placeholder="Nome do cliente">
+            <input type="text" id="clienteContato" placeholder="Contato">
+            <input type="text" id="clienteTelefone" placeholder="Telefone">
+            <input type="text" id="clienteEndereco" placeholder="Endereço">
+            <input type="text" id="clienteCEP" placeholder="CEP">
+            <div class="totais">
+                <p>Frete: R$ <span id="frete">0.00</span></p>
+                <p>Desconto: R$ <span id="desconto">0.00</span></p>
+                <p>Total Geral: R$ <span id="totalGeral">0.00</span></p>
+            </div>
+            <button onclick="salvarOrcamento()">Salvar Orçamento</button>
+            <button id="gerarPDF">Gerar PDF</button>
+        </section>
 
-  <!-- PRODUTO PERSONALIZADO -->
-  <section style="margin:20px;">
-    <h2>Adicionar Produto Personalizado</h2>
-    <input type="text" id="novoProdutoNome" placeholder="Nome do produto">
-    <input type="number" id="novoProdutoPreco" placeholder="Preço unitário">
-    <button onclick="adicionarProdutoPersonalizado()">Adicionar Produto</button>
-  </section>
+        <!-- Dashboard -->
+        <section class="resumo-dashboard">
+            <h2>Resumo Geral</h2>
+            <div class="cards">
+                <div class="card">
+                    <h3>Orçamentos Aguardando Aprovação</h3>
+                    <p id="orcamentosAguardando">0</p>
+                </div>
+                <div class="card">
+                    <h3>Orçamentos Aprovados</h3>
+                    <p id="orcamentosAprovados">0</p>
+                </div>
+                <div class="card">
+                    <h3>Pedidos em Produção</h3>
+                    <p id="pedidosProducao">0</p>
+                </div>
+                <div class="card">
+                    <h3>Pedidos Finalizados</h3>
+                    <p id="pedidosFinalizados">0</p>
+                </div>
+            </div>
+            <canvas id="graficoStatus" width="400" height="200"></canvas>
+        </section>
 
-  <!-- CARRINHO -->
-  <section style="margin:20px;">
-    <h2>Carrinho</h2>
-    <div id="listaItens"></div>
-  </section>
+        <!-- Filtros e listas -->
+        <section class="orcamentos-dashboard">
+            <h2>Orçamentos</h2>
+            <label for="filtroOrcamentos">Filtrar status:</label>
+            <select id="filtroOrcamentos">
+                <option value="todos">Todos</option>
+                <option value="Aguardando aprovação">Aguardando aprovação</option>
+                <option value="Aprovado">Aprovado</option>
+            </select>
+            <div id="listaOrcamentos"></div>
+        </section>
 
-  <!-- TOTAIS -->
-  <section id="totais" style="margin:20px;">
-    <h2>Totais</h2>
-    <p>Frete: R$ <span id="frete">0.00</span></p>
-    <p>Desconto: R$ <span id="desconto">0.00</span></p>
-    <p>Total Geral: R$ <span id="totalGeral">0.00</span></p>
-  </section>
+        <section class="pedidos-dashboard">
+            <h2>Pedidos</h2>
+            <label for="filtroPedidos">Filtrar status:</label>
+            <select id="filtroPedidos">
+                <option value="todos">Todos</option>
+                <option value="Em produção">Em produção</option>
+                <option value="Finalizado">Finalizado</option>
+            </select>
+            <div id="listaPedidos"></div>
+        </section>
+    </main>
 
-  <button id="gerarPDF" style="margin:20px;">Gerar PDF</button>
-
-  <!-- INFORMAÇÕES DO CLIENTE -->
-  <section style="margin:20px;">
-    <h2>Informações do Cliente</h2>
-    <input type="text" id="clienteNome" placeholder="Nome do cliente">
-    <input type="text" id="clienteContato" placeholder="Contato (ex: WhatsApp)">
-    <input type="text" id="clienteTelefone" placeholder="Telefone">
-    <input type="text" id="clienteEndereco" placeholder="Endereço">
-    <input type="text" id="clienteCEP" placeholder="CEP do cliente" maxlength="8">
-    <button onclick="salvarOrcamento()">Enviar Orçamento via WhatsApp</button>
-  </section>
-
-  <!-- LISTA DE ORÇAMENTOS -->
-  <section style="margin:20px;">
-    <h2>Orçamentos</h2>
-    <div id="listaOrcamentos"></div>
-  </section>
-
-  <!-- LISTA DE PEDIDOS -->
-  <section style="margin:20px;">
-    <h2>Pedidos</h2>
-    <div id="listaPedidos"></div>
-  </section>
-
-  <!-- SCRIPTS -->
-  <script src="js/db.js"></script>
-  <script src="js/app.js"></script>
-
+    <script src="js/db.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
