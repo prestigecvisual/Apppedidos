@@ -91,19 +91,22 @@ function salvarOrcamento() {
 function atualizarListaOrcamentos() {
     const div = document.getElementById("listaOrcamentos");
     
-    // Se o elemento NÃO existir no HTML, ele para aqui e não dá erro no console
-    if (!div) return; 
+    // TRAVA DE SEGURANÇA: Se o 'div' for nulo, a função para aqui e evita o erro
+    if (!div) {
+        console.warn("Aviso: O elemento 'listaOrcamentos' não existe no HTML.");
+        return; 
+    }
 
     div.innerHTML = "<strong>Histórico:</strong><br>";
     
-    // Verifica se há orçamentos salvos no banco (db.js)
+    // Verifica se existem orçamentos no array (que vem do db.js)
     if (sistema.orcamentos && sistema.orcamentos.length > 0) {
-        // Pega os últimos 3 e mostra na tela
+        // Mostra os últimos 3 orçamentos salvos
         sistema.orcamentos.slice(-3).reverse().forEach(o => {
-            div.innerHTML += `${o.cliente || 'Consumidor'} - R$ ${o.total}<br>`;
+            div.innerHTML += `${o.cliente || 'Cliente'} - R$ ${o.total}<br>`;
         });
     } else {
-        div.innerHTML += "Nenhum orçamento recente.";
+        div.innerHTML += "Nenhum orçamento salvo.";
     }
 }
 
