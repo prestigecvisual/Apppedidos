@@ -174,10 +174,11 @@ function atualizarListaOrcamentos() {
                 ${o.cliente} - R$ ${o.total}
                 <br>Status: ${o.status || "Orçamento"}
                 <br>
-                <button onclick="aprovarOrcamento(${i})">Aprovar</button>
+                ${o.status !== "Aprovado" ? `<button onclick="aprovarOrcamento(${i})">Aprovar</button>` : "✅ Aprovado"}
             </p>
         `;
     });
+}
 }
 
 function atualizarListaPedidos() {
