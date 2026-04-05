@@ -231,6 +231,38 @@ document.getElementById("gerarPDF").addEventListener("click", () => {
     y += 7;
   });
 
+  // Função para calcular frete baseado no CEP
+function calcularFretePorCEP(cep) {
+  cep = cep.replace(/\D/g, "");
+  if (!cep || cep.length !== 8) return 0;
+
+  if (cep >= "01000000" && cep <= "19999999") return 15; // SP
+  else if (cep >= "20000000" && cep <= "28999999") return 25; // RJ
+  else return 40; // resto do Brasil
+}
+
+// Atualiza totais do carrinho
+function calcularTotais() {
+  let totalProdutos = 0;
+  sistema.carrinho.forEach(item => totalProdutos += item.total);
+
+  const cep = document.getElementById("clienteCEP")?.value || "";
+  const frete = calcularFretePorCEP(cep);
+  const desconto = totalProdutos > 200 ? totalProdutos * 0.1 : 0;
+  const totalGeral = totalProdutos + frete - desconto;
+
+  document.getElementById("frete").textContent = frete.toFixed(2);
+  document.getElementById("desconto").textContent = desconto.toFixed(2);
+  document.getElementById("totalGeral").textContent = totalGeral.toFixed(2);
+
+  return { frete, desconto, totalGeral };
+}
+
+// Recalcula totais sempre que o CEP muda
+document.getElementById("clienteCEP").addEventListener("input", () => {
+  calcularTotais();
+});
+
   // Totais
   const totais = calcularTotais();
   y += 10;
