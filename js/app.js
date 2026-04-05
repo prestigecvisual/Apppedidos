@@ -1,282 +1,279 @@
-// Inicialização do sistema
-const sistema = {
-  produtos: [
-    { nome: "Acrílico 3mm", preco: 50 },
-    { nome: "Acrílico 5mm", preco: 80 },
-  ],
-  carrinho: [],
-  orcamentos: [],
-  pedidos: [],
-  contadorOrcamento: 1,
-  contadorPedido: 1
-};
-
-// Carrega produtos no select e listas ao abrir a página
 window.onload = function () {
-  const select = document.getElementById("produto");
-  sistema.produtos.forEach((prod, index) => {
-    const option = document.createElement("option");
-    option.value = index;
-    option.textContent = `${prod.nome} - R$ ${prod.preco}`;
-    select.appendChild(option);
-  });
-  atualizarListaOrcamentos();
-  atualizarListaPedidos();
-  calcularTotais(); // Atualiza totais ao carregar
+    const select = document.getElementById("produto");
+    sistema.produtos.forEach((prod, index) => {
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = `${prod.nome} - R$ ${prod.preco}`;
+        select.appendChild(option);
+    });
+    atualizarTudo(); // Atualiza dashboard e listas
 };
 
-// --------------------- FUNÇÕES DE CÁLCULO ---------------------
-
-// Calcula preço unitário e total do item
+// ------------------ Funções de cálculo ------------------
 function calcular() {
-  const produtoIndex = document.getElementById("produto").value;
-  const largura = parseFloat(document.getElementById("largura").value);
-  const altura = parseFloat(document.getElementById("altura").value);
-  const quantidade = parseInt(document.getElementById("quantidade").value);
+    const produtoIndex = document.getElementById("produto").value;
+    const largura = parseFloat(document.getElementById("largura").value);
+    const altura = parseFloat(document.getElementById("altura").value);
+    const quantidade = parseInt(document.getElementById("quantidade").value);
 
-  if (produtoIndex === "" || !largura || !altura || !quantidade) {
-    alert("Preencha todos os campos do produto!");
-    return;
-  }
+    if (produtoIndex === "" || !largura || !altura || !quantidade) {
+        alert("Preencha todos os campos do produto!");
+        return;
+    }
 
-  const produto = sistema.produtos[produtoIndex];
-  const area = (largura * altura) / 10000;
-  const precoUnitario = produto.preco * area * 10;
-  const total = precoUnitario * quantidade;
+    const produto = sistema.produtos[produtoIndex];
+    const area = (largura * altura) / 10000;
+    const precoUnitario = produto.preco * area * 10;
+    const total = precoUnitario * quantidade;
 
-  document.getElementById("resultado").innerHTML =
-    `Produto: ${produto.nome} <br>Área: ${area.toFixed(2)} m² <br>Preço unitário: R$ ${precoUnitario.toFixed(2)} <br>Total: R$ ${total.toFixed(2)}`;
+    document.getElementById("resultado").innerHTML =
+        `Produto: ${produto.nome} <br>Área: ${area.toFixed(2)} m² <br>Preço unitário: R$ ${precoUnitario.toFixed(2)} <br>Total: R$ ${total.toFixed(2)}`;
 
-  return { produto: produto.nome, largura, altura, quantidade, total };
+    return { produto: produto.nome, largura, altura, quantidade, total };
 }
 
-// Função para calcular frete baseado no CEP
-function calcularFretePorCEP(cep) {
-  cep = cep.replace(/\D/g, "");
-  if (!cep || cep.length !== 8) return 0;
-
-  if (cep >= "01000000" && cep <= "19999999") return 15; // SP
-  else if (cep >= "20000000" && cep <= "28999999") return 25; // RJ
-  else return 40; // resto do Brasil
-}
-
-// Calcula totais do carrinho
-function calcularTotais() {
-  let totalProdutos = 0;
-  sistema.carrinho.forEach(item => totalProdutos += item.total);
-
-  const cep = document.getElementById("clienteCEP")?.value || "";
-  const frete = calcularFretePorCEP(cep);
-  const desconto = totalProdutos > 200 ? totalProdutos * 0.1 : 0;
-  const totalGeral = totalProdutos + frete - desconto;
-
-  document.getElementById("frete").textContent = frete.toFixed(2);
-  document.getElementById("desconto").textContent = desconto.toFixed(2);
-  document.getElementById("totalGeral").textContent = totalGeral.toFixed(2);
-
-  return { frete, desconto, totalGeral };
-}
-
-// Recalcula totais quando o CEP muda
-document.getElementById("clienteCEP").addEventListener("input", () => {
-  calcularTotais();
-});
-
-// --------------------- FUNÇÕES DE CARRINHO ---------------------
-
-// Adiciona item ao carrinho
 function adicionarItem() {
-  const dados = calcular();
-  if (!dados) return;
-  sistema.carrinho.push(dados);
-  atualizarListaItens();
-  calcularTotais();
+    const dados = calcular();
+    if (!dados) return;
+    sistema.carrinho.push(dados);
+    atualizarListaItens();
+    atualizarResumoDashboard();
 }
 
-// Atualiza lista de itens na tela
 function atualizarListaItens() {
-  const lista = document.getElementById("listaItens");
-  lista.innerHTML = "";
-  sistema.carrinho.forEach((item, index) => {
-    lista.innerHTML += `<div>${item.produto} - ${item.largura}x${item.altura} cm | Qtd: ${item.quantidade} | Total: R$ ${item.total.toFixed(2)}</div>`;
-  });
+    const lista = document.getElementById("listaItens");
+    lista.innerHTML = "";
+    sistema.carrinho.forEach(item => {
+        lista.innerHTML += `<div>${item.produto} - ${item.largura}x${item.altura} cm | Qtd: ${item.quantidade} | Total: R$ ${item.total.toFixed(2)}</div>`;
+    });
 }
 
-// Adicionar produtos personalizados
 function adicionarProdutoPersonalizado() {
-  const nome = document.getElementById("novoProdutoNome").value.trim();
-  const preco = parseFloat(document.getElementById("novoProdutoPreco").value);
+    const nome = document.getElementById("novoProdutoNome").value.trim();
+    const preco = parseFloat(document.getElementById("novoProdutoPreco").value);
 
-  if (!nome || !preco || preco <= 0) {
-    alert("Preencha corretamente o nome e preço do produto!");
-    return;
-  }
+    if (!nome || !preco || preco <= 0) {
+        alert("Preencha corretamente o nome e preço do produto!");
+        return;
+    }
 
-  const novoProduto = { nome, preco };
-  sistema.produtos.push(novoProduto);
+    const novoProduto = { nome, preco };
+    sistema.produtos.push(novoProduto);
 
-  const select = document.getElementById("produto");
-  const option = document.createElement("option");
-  option.value = sistema.produtos.length - 1;
-  option.textContent = `${novoProduto.nome} - R$ ${novoProduto.preco}`;
-  select.appendChild(option);
+    const select = document.getElementById("produto");
+    const option = document.createElement("option");
+    option.value = sistema.produtos.length - 1;
+    option.textContent = `${novoProduto.nome} - R$ ${novoProduto.preco}`;
+    select.appendChild(option);
 
-  document.getElementById("novoProdutoNome").value = "";
-  document.getElementById("novoProdutoPreco").value = "";
+    document.getElementById("novoProdutoNome").value = "";
+    document.getElementById("novoProdutoPreco").value = "";
 
-  alert(`Produto "${nome}" adicionado! Agora você pode selecioná-lo no orçamento.`);
+    alert(`Produto "${nome}" adicionado!`);
 }
 
-// --------------------- ORÇAMENTO E PEDIDOS ---------------------
+// ------------------ Frete e totais ------------------
+function calcularFretePorCEP(cep) {
+    cep = cep.replace(/\D/g, "");
+    if (!cep || cep.length !== 8) return 0;
+    if (cep >= "01000000" && cep <= "19999999") return 15; // SP
+    else if (cep >= "20000000" && cep <= "28999999") return 25; // RJ
+    else return 40; // resto do Brasil
+}
 
-// Salvar orçamento e enviar via WhatsApp
+function calcularTotais() {
+    let totalProdutos = 0;
+    sistema.carrinho.forEach(item => totalProdutos += item.total);
+
+    const cep = document.getElementById("clienteCEP")?.value || "";
+    const frete = calcularFretePorCEP(cep);
+    const desconto = totalProdutos > 200 ? totalProdutos * 0.1 : 0;
+    const totalGeral = totalProdutos + frete - desconto;
+
+    document.getElementById("frete").textContent = frete.toFixed(2);
+    document.getElementById("desconto").textContent = desconto.toFixed(2);
+    document.getElementById("totalGeral").textContent = totalGeral.toFixed(2);
+
+    return { frete, desconto, totalGeral };
+}
+
+document.getElementById("clienteCEP")?.addEventListener("input", calcularTotais);
+
+// ------------------ Orçamentos ------------------
 function salvarOrcamento() {
-  const nome = document.getElementById("clienteNome").value;
-  const contato = document.getElementById("clienteContato").value;
-  const telefone = document.getElementById("clienteTelefone").value;
-  const endereco = document.getElementById("clienteEndereco").value;
+    const nome = document.getElementById("clienteNome").value;
+    const contato = document.getElementById("clienteContato").value;
+    const telefone = document.getElementById("clienteTelefone").value;
+    const endereco = document.getElementById("clienteEndereco").value;
 
-  if (!nome || !contato || !telefone || !endereco) {
-    alert("Preencha todas as informações do cliente!");
-    return;
-  }
-  if (sistema.carrinho.length === 0) {
-    alert("Adicione pelo menos um item ao orçamento!");
-    return;
-  }
+    if (!nome || !contato || !telefone || !endereco) {
+        alert("Preencha todas as informações do cliente!");
+        return;
+    }
+    if (sistema.carrinho.length === 0) {
+        alert("Adicione pelo menos um item ao orçamento!");
+        return;
+    }
 
-  const numeroOrcamento = sistema.contadorOrcamento++;
-  const orcamento = {
-    numero: numeroOrcamento,
-    cliente: { nome, contato, telefone, endereco },
-    itens: [...sistema.carrinho],
-    status: "Aguardando aprovação",
-    prazo: "Orçamento válido por 10 dias úteis",
-    data: new Date().toLocaleDateString()
-  };
+    const numeroOrcamento = sistema.contadorOrcamento++;
+    const orcamento = {
+        numero: numeroOrcamento,
+        cliente: { nome, contato, telefone, endereco },
+        itens: [...sistema.carrinho],
+        status: "Aguardando aprovação",
+        prazo: "Orçamento válido por 10 dias úteis",
+        data: new Date().toLocaleDateString()
+    };
 
-  sistema.orcamentos.push(orcamento);
+    sistema.orcamentos.push(orcamento);
 
-  let resumo = `Orçamento Nº ${orcamento.numero} - Prestige Comunicação Visual\n\nCliente: ${nome}\nContato: ${contato}\nTelefone: ${telefone}\nEndereço: ${endereco}\n\n`;
+    alert(`Orçamento Nº ${orcamento.numero} enviado!`);
 
-  let totalProdutos = 0;
-  orcamento.itens.forEach((item) => {
-    resumo += `${item.produto} - ${item.largura}x${item.altura} cm | Qtd: ${item.quantidade} | R$ ${item.total.toFixed(2)}\n`;
-    totalProdutos += item.total;
-  });
-
-  const totais = calcularTotais();
-  resumo += `\nFrete: R$ ${totais.frete.toFixed(2)} | Desconto: R$ ${totais.desconto.toFixed(2)} | Total Geral: R$ ${totais.totalGeral.toFixed(2)}`;
-  resumo += `\n${orcamento.prazo}`;
-
-  const numero = "5511922018290";
-  const url = `https://wa.me/${numero}?text=${encodeURIComponent(resumo)}`;
-  window.open(url, "_blank");
-
-  sistema.carrinho = [];
-  atualizarListaItens();
-  document.getElementById("resultado").innerHTML = "";
-  document.getElementById("clienteNome").value = "";
-  document.getElementById("clienteContato").value = "";
-  document.getElementById("clienteTelefone").value = "";
-  document.getElementById("clienteEndereco").value = "";
-  document.getElementById("clienteCEP").value = "";
-
-  atualizarListaOrcamentos();
-  atualizarListaPedidos();
-
-  alert(`Orçamento Nº ${orcamento.numero} enviado! Status: Aguardando aprovação`);
+    sistema.carrinho = [];
+    atualizarListaItens();
+    atualizarTudo();
 }
 
-// Gerar pedido a partir de orçamento
+// ------------------ Pedidos ------------------
 function gerarPedido(orcamentoNumero) {
-  const orc = sistema.orcamentos.find(o => o.numero === orcamentoNumero);
-  if (!orc) {
-    alert("Orçamento não encontrado!");
-    return;
-  }
+    const orc = sistema.orcamentos.find(o => o.numero === orcamentoNumero);
+    if (!orc) return;
 
-  const numeroPedido = sistema.contadorPedido++;
-  const pedido = {
-    numero: numeroPedido,
-    vinculadoOrcamento: orc.numero,
-    cliente: orc.cliente,
-    itens: [...orc.itens],
-    status: "Em produção",
-    data: new Date().toLocaleDateString()
-  };
+    const numeroPedido = sistema.contadorPedido++;
+    const pedido = {
+        numero: numeroPedido,
+        vinculadoOrcamento: orc.numero,
+        cliente: orc.cliente,
+        itens: [...orc.itens],
+        status: "Em produção",
+        data: new Date().toLocaleDateString()
+    };
 
-  sistema.pedidos.push(pedido);
-  alert(`Pedido Nº ${pedido.numero} gerado a partir do Orçamento Nº ${orc.numero}`);
-  atualizarListaPedidos();
+    sistema.pedidos.push(pedido);
+    atualizarTudo();
 }
 
-// Atualiza lista de orçamentos
+// ------------------ Alterar status ------------------
+function alterarStatusOrcamento(numeroOrcamento, novoStatus) {
+    const orc = sistema.orcamentos.find(o => o.numero === numeroOrcamento);
+    if (!orc) return;
+    orc.status = novoStatus;
+    atualizarTudo();
+}
+
+function alterarStatusPedido(numeroPedido, novoStatus) {
+    const pedido = sistema.pedidos.find(p => p.numero === numeroPedido);
+    if (!pedido) return;
+    pedido.status = novoStatus;
+    atualizarTudo();
+}
+
+// ------------------ Atualização Dashboard ------------------
+let graficoStatus;
+function atualizarResumoDashboard() {
+    const orcamentosAguardando = sistema.orcamentos.filter(o => o.status === "Aguardando aprovação").length;
+    const orcamentosAprovados = sistema.orcamentos.filter(o => o.status === "Aprovado").length;
+    const pedidosProducao = sistema.pedidos.filter(p => p.status === "Em produção").length;
+    const pedidosFinalizados = sistema.pedidos.filter(p => p.status === "Finalizado").length;
+
+    document.getElementById("orcamentosAguardando").textContent = orcamentosAguardando;
+    document.getElementById("orcamentosAprovados").textContent = orcamentosAprovados;
+    document.getElementById("pedidosProducao").textContent = pedidosProducao;
+    document.getElementById("pedidosFinalizados").textContent = pedidosFinalizados;
+
+    const ctx = document.getElementById("graficoStatus").getContext("2d");
+    const data = {
+        labels: ['Orçamentos Aguardando', 'Orçamentos Aprovados', 'Pedidos Produção', 'Pedidos Finalizados'],
+        datasets: [{
+            label: 'Quantidade',
+            data: [orcamentosAguardando, orcamentosAprovados, pedidosProducao, pedidosFinalizados],
+            backgroundColor: ['#f8961e', '#43aa8b', '#0077b6', '#023e8a']
+        }]
+    };
+
+    const config = { type: 'bar', data: data, options: { responsive: true, plugins: { legend: { display: false } } } };
+
+    if (graficoStatus) {
+        graficoStatus.data.datasets[0].data = data.datasets[0].data;
+        graficoStatus.update();
+    } else {
+        graficoStatus = new Chart(ctx, config);
+    }
+}
+
+// ------------------ Atualizar listas com filtros ------------------
 function atualizarListaOrcamentos() {
-  const div = document.getElementById("listaOrcamentos");
-  div.innerHTML = "";
-  sistema.orcamentos.forEach((orc) => {
-    div.innerHTML += `<div>
-      Orçamento Nº ${orc.numero} - ${orc.cliente.nome} | Status: ${orc.status} | Data: ${orc.data} 
-      <button onclick="gerarPedido(${orc.numero})">Gerar Pedido</button>
-    </div>`;
-  });
+    const div = document.getElementById("listaOrcamentos");
+    const filtro = document.getElementById("filtroOrcamentos").value;
+    div.innerHTML = "";
+
+    sistema.orcamentos
+        .filter(o => filtro === "todos" || o.status === filtro)
+        .forEach((orc) => {
+            div.innerHTML += `<div>
+                Orçamento Nº ${orc.numero} - ${orc.cliente.nome} | Status: 
+                <select onchange="alterarStatusOrcamento(${orc.numero}, this.value)">
+                    <option value="Aguardando aprovação" ${orc.status === "Aguardando aprovação" ? "selected" : ""}>Aguardando aprovação</option>
+                    <option value="Aprovado" ${orc.status === "Aprovado" ? "selected" : ""}>Aprovado</option>
+                </select>
+                | Data: ${orc.data}
+                <button onclick="gerarPedido(${orc.numero})">Gerar Pedido</button>
+            </div>`;
+        });
 }
 
-// Atualiza lista de pedidos
 function atualizarListaPedidos() {
-  const div = document.getElementById("listaPedidos");
-  div.innerHTML = "";
-  sistema.pedidos.forEach((pedido) => {
-    div.innerHTML += `<div>Pedido Nº ${pedido.numero} (vinculado ao Orçamento Nº ${pedido.vinculadoOrcamento}) - ${pedido.cliente.nome} | Status: ${pedido.status} | Data: ${pedido.data}</div>`;
-  });
+    const div = document.getElementById("listaPedidos");
+    const filtro = document.getElementById("filtroPedidos").value;
+    div.innerHTML = "";
+
+    sistema.pedidos
+        .filter(p => filtro === "todos" || p.status === filtro)
+        .forEach((pedido) => {
+            div.innerHTML += `<div>
+                Pedido Nº ${pedido.numero} (vinculado ao Orçamento Nº ${pedido.vinculadoOrcamento}) - ${pedido.cliente.nome} | Status: 
+                <select onchange="alterarStatusPedido(${pedido.numero}, this.value)">
+                    <option value="Em produção" ${pedido.status === "Em produção" ? "selected" : ""}>Em produção</option>
+                    <option value="Finalizado" ${pedido.status === "Finalizado" ? "selected" : ""}>Finalizado</option>
+                </select>
+                | Data: ${pedido.data}
+            </div>`;
+        });
 }
 
-// --------------------- GERAR PDF ---------------------
+// ------------------ Atualização completa ------------------
+function atualizarTudo() {
+    atualizarListaOrcamentos();
+    atualizarListaPedidos();
+    atualizarResumoDashboard();
+}
+
+document.getElementById("filtroOrcamentos").addEventListener("change", atualizarListaOrcamentos);
+document.getElementById("filtroPedidos").addEventListener("change", atualizarListaPedidos);
+
+// ------------------ Gerar PDF ------------------
 document.getElementById("gerarPDF").addEventListener("click", () => {
-  if (sistema.carrinho.length === 0) {
-    alert("Adicione pelo menos um item antes de gerar o PDF!");
-    return;
-  }
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p', 'mm', 'a4');
-  let y = 20;
-
-  doc.setFontSize(16);
-  doc.text("Orçamento - Prestige Comunicação Visual", 105, y, { align: "center" });
-  y += 10;
-
-  const dataAtual = new Date().toLocaleDateString();
-  doc.setFontSize(12);
-  doc.text(`Data: ${dataAtual}`, 10, y);
-  y += 10;
-
-  // Cabeçalho da tabela
-  doc.text("Produto", 10, y);
-  doc.text("Qtd", 90, y);
-  doc.text("Área m²", 120, y);
-  doc.text("Total R$", 160, y);
-  y += 7;
-
-  sistema.carrinho.forEach(item => {
-    const area = ((item.largura * item.altura) / 10000).toFixed(2);
-    doc.text(item.produto, 10, y);
-    doc.text(item.quantidade.toString(), 90, y);
-    doc.text(area, 120, y);
-    doc.text(item.total.toFixed(2), 160, y);
+    if (sistema.carrinho.length === 0) { alert("Adicione pelo menos um item antes de gerar o PDF!"); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p','mm','a4');
+    let y = 20;
+    doc.setFontSize(16);
+    doc.text("Orçamento - Prestige Comunicação Visual", 105, y, { align: "center" });
+    y += 10;
+    const dataAtual = new Date().toLocaleDateString();
+    doc.setFontSize(12);
+    doc.text(`Data: ${dataAtual}`, 10, y);
+    y += 10;
+    doc.text("Produto", 10, y); doc.text("Qtd", 90, y); doc.text("Área m²", 120, y); doc.text("Total R$", 160, y);
     y += 7;
-  });
-
-  // Totais
-  const totais = calcularTotais();
-  y += 10;
-  doc.text(`Frete: R$ ${totais.frete.toFixed(2)}`, 10, y);
-  y += 7;
-  doc.text(`Desconto: R$ ${totais.desconto.toFixed(2)}`, 10, y);
-  y += 7;
-  doc.setFontSize(14);
-  doc.text(`Total Geral: R$ ${totais.totalGeral.toFixed(2)}`, 10, y);
-
-  doc.save(`Orcamento_${Date.now()}.pdf`);
+    sistema.carrinho.forEach(item => {
+        const area = ((item.largura*item.altura)/10000).toFixed(2);
+        doc.text(item.produto,10,y); doc.text(item.quantidade.toString(),90,y); doc.text(area,120,y); doc.text(item.total.toFixed(2),160,y);
+        y +=7;
+    });
+    const totais = calcularTotais();
+    y += 10; doc.text(`Frete: R$ ${totais.frete.toFixed(2)}`,10,y); y+=7;
+    doc.text(`Desconto: R$ ${totais.desconto.toFixed(2)}`,10,y); y+=7;
+    doc.setFontSize(14); doc.text(`Total Geral: R$ ${totais.totalGeral.toFixed(2)}`,10,y);
+    doc.save(`Orcamento_${Date.now()}.pdf`);
 });
