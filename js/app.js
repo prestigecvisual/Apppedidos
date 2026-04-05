@@ -3,7 +3,7 @@
 // ================================
 
 window.onload = function () {
-    carregarDoNavegador(); // Função do db.js para recuperar dados salvos
+    carregarDoNavegador(); // Recupera dados do localStorage
     popularProdutos();
     atualizarListaOrcamentos();
     atualizarDashboard();
@@ -65,10 +65,10 @@ function calcular() {
         }
         const areaM2 = (largura * altura) / 10000;
         totalItem = produto.preco * areaM2 * quantidade;
-        infoMedida = `${largura}x${altura}cm (${areaM2.toFixed(2)}m²)`;
+        infoMedida = `${largura}x${altura}cm`;
     } else {
         totalItem = produto.preco * quantidade;
-        infoMedida = "Unidade";
+        infoMedida = "Unid";
     }
 
     document.getElementById("resultado").innerHTML = `
@@ -79,8 +79,7 @@ function calcular() {
 
     return { 
         nome: produto.nome, 
-        largura: largura || 0, 
-        altura: altura || 0, 
+        medida: infoMedida,
         quantidade, 
         total: totalItem 
     };
@@ -90,7 +89,7 @@ function adicionarItem() {
     const dados = calcular();
     if (!dados) return;
     sistema.carrinho.push(dados);
-    salvarNoNavegador(); // Salva no localStorage (db.js)
+    salvarNoNavegador(); 
     atualizarListaItens();
     calcularTotais();
 }
@@ -101,9 +100,10 @@ function atualizarListaItens() {
     lista.innerHTML = "";
     sistema.carrinho.forEach((item, index) => {
         lista.innerHTML += `
-            <div class="item-carrinho">
-                ${item.nome} (${item.quantidade}x) - <strong>R$ ${item.total.toFixed(2)}</strong>
-                <button onclick="removerItem(${index})" style="color:red; background:none; border:none; cursor:pointer"> [X]</button>
+            <div class="item-carrinho" style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                <span>${item.nome} (${item.medida}) x${item.quantidade}</span>
+                <span><strong>R$ ${item.total.toFixed(2)}</strong> 
+                <button onclick="removerItem(${index})" style="color:red; cursor:pointer; border:none; background:none;">[X]</button></span>
             </div>`;
     });
 }
@@ -120,27 +120,21 @@ function calcularTotais() {
     let totalProdutos = 0;
     sistema.carrinho.forEach(item => totalProdutos += item.total);
 
-    // Frete por CEP
     const cep = document.getElementById("clienteCEP")?.value.replace(/\D/g, "") || "";
-    let frete = 0;
-    if (cep.length === 8) {
-        frete = cep.startsWith("0") ? 15.00 : 40.00;
-    }
+    let frete = (cep.length === 8) ? (cep.startsWith("0") ? 15.00 : 40.00) : 0;
 
-    // Pagamento e Taxas
     const pgto = document.getElementById("formaPagamento")?.value || "debito";
     let taxaOuDesc = 0;
 
-    if (pgto === "pix") taxaOuDesc = -(totalProdutos * 0.05); // -5%
-    else if (pgto === "credito_3x") taxaOuDesc = totalProdutos * 0.06; // +6%
-    else if (pgto === "credito_5x") taxaOuDesc = totalProdutos * 0.07; // +7%
+    if (pgto === "pix") taxaOuDesc = -(totalProdutos * 0.05);
+    else if (pgto === "credito_3x") taxaOuDesc = totalProdutos * 0.06;
+    else if (pgto === "credito_5x") taxaOuDesc = totalProdutos * 0.07;
 
     const totalGeral = totalProdutos + frete + taxaOuDesc;
 
     document.getElementById("frete").textContent = frete.toFixed(2);
     document.getElementById("desconto").textContent = Math.abs(taxaOuDesc).toFixed(2);
     
-    // Muda cor se for desconto (verde) ou taxa (vermelho)
     const elDesc = document.getElementById("desconto");
     if (elDesc) elDesc.style.color = taxaOuDesc < 0 ? "green" : (taxaOuDesc > 0 ? "red" : "black");
 
@@ -149,14 +143,13 @@ function calcularTotais() {
     return { frete, taxaOuDesc, totalGeral };
 }
 
-// Ouvintes
-document.getElementById("clienteCEP")?.addEventListener("blur", calcularTotais);
-
-// --- GESTÃO E PDF ---
+// --- GESTÃO DE ORÇAMENTOS ---
 function salvarOrcamento() {
     const nome = document.getElementById("clienteNome").value;
+    const docCliente = document.getElementById("clienteDoc").value; // Captura CPF/CNPJ
+    
     if (!nome || sistema.carrinho.length === 0) {
-        alert("Preencha o nome do cliente e adicione itens!");
+        alert("Preencha o nome e adicione itens!");
         return;
     }
 
@@ -164,6 +157,7 @@ function salvarOrcamento() {
         numero: sistema.contadorOrcamento++,
         dataID: atualizarDataAutomatica(),
         cliente: nome,
+        documento: docCliente,
         itens: [...sistema.carrinho],
         total: parseFloat(document.getElementById("totalGeral").textContent),
         status: "Pendente"
@@ -176,7 +170,7 @@ function salvarOrcamento() {
     atualizarListaItens();
     atualizarListaOrcamentos();
     atualizarDashboard();
-    alert("Orçamento salvo!");
+    alert("Orçamento salvo com sucesso!");
 }
 
 function atualizarListaOrcamentos() {
@@ -186,31 +180,39 @@ function atualizarListaOrcamentos() {
     sistema.orcamentos.slice().reverse().forEach(orc => {
         div.innerHTML += `
             <div class="card-historico" style="border-bottom:1px solid #ccc; padding:10px;">
-                <strong>#${orc.numero}</strong> | ${orc.dataID} | ${orc.cliente} | <strong>R$ ${orc.total.toFixed(2)}</strong>
+                <strong>#${orc.numero}</strong> | ${orc.dataID}<br>
+                Cliente: ${orc.cliente} (${orc.documento})<br>
+                <strong>Total: R$ ${orc.total.toFixed(2)}</strong>
             </div>`;
     });
 }
 
 function atualizarDashboard() {
-    document.getElementById("totalOrcamentos").textContent = sistema.orcamentos.length;
+    const el = document.getElementById("totalOrcamentos");
+    if (el) el.textContent = sistema.orcamentos.length;
 }
 
-// PDF
+// --- GERAÇÃO DE PDF ---
 document.getElementById("gerarPDF")?.addEventListener("click", () => {
     if (sistema.carrinho.length === 0) return alert("Carrinho vazio!");
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const dataRef = atualizarDataAutomatica();
+    const nome = document.getElementById("clienteNome").value;
+    const docCli = document.getElementById("clienteDoc").value;
 
     doc.setFontSize(18);
     doc.text("PRESTIGE COMUNICAÇÃO VISUAL", 10, 20);
+    
     doc.setFontSize(10);
     doc.text(`Orçamento Ref: ${dataRef}`, 10, 30);
-    doc.text(`Cliente: ${document.getElementById("clienteNome").value}`, 10, 35);
+    doc.text(`Cliente: ${nome}`, 10, 35);
+    doc.text(`CPF/CNPJ: ${docCli}`, 10, 40);
 
-    let y = 50;
+    let y = 55;
     doc.text("Item", 10, y);
+    doc.text("Medida", 80, y);
     doc.text("Qtd", 140, y);
     doc.text("Total", 170, y);
     doc.line(10, y+2, 200, y+2);
@@ -218,6 +220,7 @@ document.getElementById("gerarPDF")?.addEventListener("click", () => {
     y += 10;
     sistema.carrinho.forEach(item => {
         doc.text(item.nome, 10, y);
+        doc.text(item.medida, 80, y);
         doc.text(item.quantidade.toString(), 140, y);
         doc.text(`R$ ${item.total.toFixed(2)}`, 170, y);
         y += 8;
@@ -225,6 +228,12 @@ document.getElementById("gerarPDF")?.addEventListener("click", () => {
 
     y += 10;
     doc.setFontSize(12);
-    doc.text(`TOTAL FINAL: R$ ${document.getElementById("totalGeral").textContent}`, 10, y);
+    doc.text(`Total Frete: R$ ${document.getElementById("frete").textContent}`, 10, y);
+    y += 7;
+    doc.text(`Taxas/Descontos: R$ ${document.getElementById("desconto").textContent}`, 10, y);
+    y += 10;
+    doc.setFontSize(14);
+    doc.text(`VALOR TOTAL: R$ ${document.getElementById("totalGeral").textContent}`, 10, y);
+
     doc.save(`Prestige_${dataRef.replace(/[:/]/g, '-')}.pdf`);
 });
