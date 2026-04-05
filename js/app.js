@@ -1,5 +1,5 @@
 // ================================
-// App Pedidos - app.js
+// App Pedidos - app.js (final)
 // ================================
 
 // Inicialização ao carregar a página
