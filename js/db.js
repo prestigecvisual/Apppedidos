@@ -9,6 +9,6 @@ const sistema = {
   carrinho: [],
   orcamentos: [],
   pedidos: [],
-  contadorOrcamento: 1,  // contador automático de orçamentos
-  contadorPedido: 1      // contador automático de pedidos
+  contadorOrcamento: 1,
+  contadorPedido: 1
 };
