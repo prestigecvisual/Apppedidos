@@ -139,6 +139,12 @@ function salvarOrcamento() {
 function aprovarOrcamento(index) {
     const orc = sistema.orcamentos[index];
 
+    // 🚨 BLOQUEIO: já aprovado?
+    if (orc.status === "Aprovado") {
+        alert("Esse orçamento já foi aprovado!");
+        return;
+    }
+
     const numeroPedido = gerarNumeroPedido();
 
     sistema.pedidos.push({
@@ -148,9 +154,8 @@ function aprovarOrcamento(index) {
         dataAprovacao: new Date().toLocaleDateString()
     });
 
+    // marca como aprovado
     orc.status = "Aprovado";
-
-    status: "Produção",
 
     salvarNoNavegador();
     atualizarListaOrcamentos();
