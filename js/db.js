@@ -2,22 +2,27 @@
 // ESTRUTURA DE DADOS - PRESTIGE COMUNICAÇÃO VISUAL
 // ========================================================
 
+// Definimos os produtos iniciais separadamente para comparação
+const PRODUTOS_PADRAO = [
+    { nome: "Adesivo Simples", preco: 120.00, tipo: "m2" },
+    { nome: "Adesivo Premium", preco: 150.00, tipo: "m2" },
+    { nome: "Placa PVC 2mm", preco: 150.00, tipo: "m2" },
+    { nome: "Acrílico 3mm", preco: 350.00, tipo: "m2" },
+    { nome: "Chaveiro 5x9 cm Acrílico 3mm", preco: 35.00, tipo: "unid" },
+    { nome: "Chaveiro 6x10 cm Acrílico 3mm", preco: 35.00, tipo: "unid" },
+    { nome: "Chaveiro 5,5x11 cm Acrílico 3mm", preco: 35.00, tipo: "unid" },
+    { nome: "Lona 440g", preco: 125.00, tipo: "m2" },
+    { nome: "Banner c/ Bastão", preco: 125.00, tipo: "unid" },
+    { nome: "Cavalete Madeira", preco: 180.00, tipo: "unid" }
+];
+
 const sistema = {
-  // Produtos padrão (caso o banco esteja vazio)
-  produtos: [
-    { nome: "Adesivo Simples", preco: 10.00, tipo: "m2" },
-    { nome: "Adesivo Premium", preco: 15.00, tipo: "m2" },
-    { nome: "Placa PVC 2mm", preco: 20.00, tipo: "m2" },
-    { nome: "Acrílico 3mm", preco: 30.00, tipo: "m2" },
-    { nome: "Lona 440g", preco: 45.00, tipo: "m2" },
-    { nome: "Banner c/ Bastão", preco: 55.00, tipo: "unid" },
-    { nome: "Cavalete Madeira", preco: 120.00, tipo: "unid" }
-  ],
-  clientes: [],
-  carrinho: [],
-  orcamentos: [],
-  pedidos: [],
-  contadorOrcamento: 1
+    produtos: [...PRODUTOS_PADRAO], // Inicia com o padrão
+    clientes: [],
+    carrinho: [],
+    orcamentos: [],
+    pedidos: [],
+    contadorOrcamento: 1
 };
 
 // ========================================================
@@ -25,28 +30,40 @@ const sistema = {
 // ========================================================
 
 function salvarNoNavegador() {
-  localStorage.setItem('PrestigeData', JSON.stringify(sistema));
+    try {
+        localStorage.setItem('PrestigeData', JSON.stringify(sistema));
+    } catch (e) {
+        console.error("Erro ao salvar dados no navegador:", e);
+    }
 }
 
 function carregarDoNavegador() {
-  const salvos = localStorage.getItem('PrestigeData');
-  if (salvos) {
-    const dados = JSON.parse(salvos);
+    const salvos = localStorage.getItem('PrestigeData');
     
-    // MELHORIA: Se houver produtos salvos no navegador, use-os 
-    // Isso permite que novos produtos cadastrados persistam
-    if (dados.produtos && dados.produtos.length > 0) {
-        sistema.produtos = dados.produtos;
-    }
+    if (salvos) {
+        try {
+            const dados = JSON.parse(salvos);
+            
+            // 1. GESTÃO DE PRODUTOS:
+            // Só substitui se os dados salvos tiverem produtos (preserva cadastros novos)
+            if (dados.produtos && dados.produtos.length > 0) {
+                sistema.produtos = dados.produtos;
+            }
 
-    sistema.clientes = dados.clientes || [];
-    sistema.orcamentos = dados.orcamentos || [];
-    sistema.pedidos = dados.pedidos || [];
-    sistema.contadorOrcamento = dados.contadorOrcamento || 1;
-    
-    // Opcional: manter carrinho após F5
-    // sistema.carrinho = dados.carrinho || [];
-  }
+            // 2. OUTROS DADOS (Uso de operador OR para evitar valores nulos)
+            sistema.clientes = dados.clientes || [];
+            sistema.orcamentos = dados.orcamentos || [];
+            sistema.pedidos = dados.pedidos || [];
+            sistema.contadorOrcamento = dados.contadorOrcamento || 1;
+            
+            // Opcional: Descomente se quiser que o carrinho não limpe ao dar F5
+            // sistema.carrinho = dados.carrinho || [];
+
+        } catch (error) {
+            console.error("Erro ao carregar dados salvos:", error);
+            // Em caso de erro no JSON, mantém o padrão do objeto 'sistema'
+        }
+    }
 }
 
 // Inicializa o carregamento imediatamente
