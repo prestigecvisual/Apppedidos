@@ -2,37 +2,62 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>App Pedidos</title>
+  <title>App Pedidos - Prestige Comunicação Visual</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<h2>Novo Pedido</h2>
+<header>
+  <div class="logo">
+    <img src="img/logo.png" alt="Logo">
+  </div>
+  <div class="contato">
+    <p>Prestige Comunicação Visual</p>
+    <p>Rua Brasil, 304 - São Bernardo do Campo - SP - CEP: 09267000</p>
+    <p>Email: prestigecvisual@.com</p>
+    <p>Tel/WhatsApp: (11) 92201-8290</p>
+  </div>
+</header>
 
+<h2>Novo Orçamento / Pedido</h2>
+
+<section class="cliente">
+  <h3>Informações do Cliente</h3>
+  <input type="text" id="clienteNome" placeholder="Nome completo">
+  <input type="text" id="clienteContato" placeholder="Contato (email ou rede)">
+  <input type="text" id="clienteTelefone" placeholder="Telefone">
+  <input type="text" id="clienteEndereco" placeholder="Endereço completo">
+</section>
+
+<section class="pedido">
+  <h3>Produtos</h3>
   <select id="produto">
-  <option value="">Selecione o produto</option>
-</select>
-<input type="number" id="largura" placeholder="Largura (cm)">
-<input type="number" id="altura" placeholder="Altura (cm)">
-<input type="number" id="quantidade" placeholder="Quantidade">
+    <option value="">Selecione o produto</option>
+  </select>
+  <input type="number" id="largura" placeholder="Largura (cm)">
+  <input type="number" id="altura" placeholder="Altura (cm)">
+  <input type="number" id="quantidade" placeholder="Quantidade">
+  <br><br>
+  <button onclick="calcular()">Calcular</button>
+  <button onclick="adicionarItem()">Adicionar Item</button>
+</section>
 
-<br><br>
+<section class="itens">
+  <h3>Itens do Orçamento</h3>
+  <div id="listaItens"></div>
+</section>
 
-<button onclick="calcular()">Calcular</button>
-<button onclick="adicionarItem()">Adicionar Item</button>
-
-<h3>Itens do Pedido</h3>
-<div id="listaItens"></div>
-
-<br>
-<button onclick="salvarPedido()">Salvar Pedido</button>
+<button onclick="salvarOrcamento()">Salvar Orçamento / Enviar WhatsApp</button>
 
 <h3>Resultado</h3>
 <div id="resultado"></div>
 
-<!-- ORDEM CORRETA -->
+<section class="orcamentos">
+  <h3>Orçamentos Salvos</h3>
+  <div id="listaOrcamentos"></div>
+</section>
+
 <script src="js/db.js"></script>
 <script src="js/app.js"></script>
-
 </body>
 </html>
