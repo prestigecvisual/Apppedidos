@@ -4,17 +4,26 @@
   <meta charset="UTF-8">
   <title>App Pedidos - Prestige Comunicação Visual</title>
   <link rel="stylesheet" href="css/style.css">
-  <script src="js/db.js"></script> <!-- Sempre primeiro -->
+  <script src="js/db.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="js/app.js" defer></script>
 </head>
 <body>
   <header>
     <img src="img/logo.png" alt="Logo" style="height:60px;">
-    <h1>App Pedidos - Prestige Comunicação Visual</h1>
+    <h1>Prestige Comunicação Visual - App Pedidos</h1>
   </header>
 
-  <section>
+  <!-- Nova Seção: Dashboard -->
+  <section id="dashboard">
+    <h2>Dashboard</h2>
+    <div class="dashboard-box">Orçamentos totais: <span id="totalOrcamentos">0</span></div>
+    <div class="dashboard-box">Orçamentos aprovados: <span id="totalAprovados">0</span></div>
+    <div class="dashboard-box">Pedidos: <span id="totalPedidos">0</span></div>
+  </section>
+
+  <!-- Seção: Novo Item -->
+  <section id="novoItem">
     <h2>Novo Item</h2>
     <label>Produto:</label>
     <select id="produto"></select><br>
@@ -28,7 +37,8 @@
     <div id="resultado"></div>
   </section>
 
-  <section>
+  <!-- Seção: Carrinho -->
+  <section id="carrinho">
     <h2>Carrinho</h2>
     <div id="listaItens"></div>
     <div>
@@ -38,7 +48,8 @@
     </div>
   </section>
 
-  <section>
+  <!-- Seção: Produto Personalizado -->
+  <section id="produtoPersonalizado">
     <h2>Adicionar Produto Personalizado</h2>
     <label>Nome:</label>
     <input type="text" id="novoProdutoNome"><br>
@@ -47,8 +58,9 @@
     <button onclick="adicionarProdutoPersonalizado()">Adicionar Produto</button>
   </section>
 
-  <section>
-    <h2>Cliente</h2>
+  <!-- Seção: Cliente -->
+  <section id="cliente">
+    <h2>Informações do Cliente</h2>
     <label>Nome:</label>
     <input type="text" id="clienteNome"><br>
     <label>Contato:</label>
@@ -63,21 +75,16 @@
     <button id="gerarPDF">Gerar PDF</button>
   </section>
 
-  <section>
+  <!-- Seção: Orçamentos -->
+  <section id="orcamentos">
     <h2>Orçamentos</h2>
     <div id="listaOrcamentos"></div>
   </section>
 
-  <section>
+  <!-- Seção: Pedidos -->
+  <section id="pedidos">
     <h2>Pedidos</h2>
     <div id="listaPedidos"></div>
-  </section>
-
-  <section>
-    <h2>Dashboard</h2>
-    <div>Orçamentos totais: <span id="totalOrcamentos">0</span></div>
-    <div>Orçamentos aprovados: <span id="totalAprovados">0</span></div>
-    <div>Pedidos: <span id="totalPedidos">0</span></div>
   </section>
 
 </body>
