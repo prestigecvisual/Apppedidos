@@ -1,11 +1,25 @@
 window.onload = () => {
     popularProdutos();
+    atualizarDataRef();
     atualizarListaOrcamentos();
-    atualizarListaPedidos();
+    atualizarListaPedidos(); // NOVO
     calcularTotais();
 };
 
-// ================= PRODUTOS =================
+// GERADOR DE NÚMERO DE PEDIDO (MMDDYY + SEQUÊNCIA)
+function gerarNumeroPedido() {
+    const hoje = new Date();
+    const mm = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dd = String(hoje.getDate()).padStart(2, '0');
+    const yy = String(hoje.getFullYear()).slice(-2);
+
+    const base = `${mm}${dd}${yy}`;
+
+    const pedidosHoje = sistema.pedidos.filter(p => p.numero?.startsWith(base));
+    const seq = String(pedidosHoje.length + 1).padStart(3, '0');
+
+    return base + seq;
+}
 
 function cadastrarNovoProduto() {
     const nome = document.getElementById("novoProdNome").value;
@@ -22,126 +36,96 @@ function cadastrarNovoProduto() {
 
 function popularProdutos() {
     const s = document.getElementById("produto");
-    if (!s) return;
+    if(!s) return;
 
     s.innerHTML = "";
+
     sistema.produtos.forEach((p, i) => {
         s.innerHTML += `<option value="${i}">${p.nome} - R$ ${p.preco.toFixed(2)} (${p.tipo})</option>`;
     });
 }
 
-// ================= GERADORES =================
-
-function gerarNumeroOrcamento() {
-    const d = new Date();
-    return `ORC-${d.getFullYear()}${d.getMonth()+1}${d.getDate()}-${d.getHours()}${d.getMinutes()}`;
+function toggleMedidas() {
+    const p = sistema.produtos[document.getElementById("produto").value];
+    document.getElementById("medidasInput").style.display = (p.tipo === "unid") ? "none" : "flex";
 }
-
-function gerarNumeroPedido() {
-    const d = new Date();
-
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    const yy = String(d.getFullYear()).slice(-2);
-
-    const base = `${mm}${dd}${yy}`;
-
-    const pedidosHoje = sistema.pedidos.filter(p => p.numero?.startsWith(base));
-    const sequencia = String(pedidosHoje.length + 1).padStart(3, '0');
-
-    return base + sequencia;
-}
-
-// ================= CARRINHO =================
 
 function adicionarItem() {
     const idx = document.getElementById("produto").value;
     const p = sistema.produtos[idx];
     const q = parseInt(document.getElementById("quantidade").value);
 
-    if (!p || isNaN(q) || q <= 0) return alert("Quantidade inválida!");
+    let t = 0, m = "Unid";
 
-    let t = 0, m = "Unid", largura = null, altura = null;
-
-    if (p.tipo === "m2") {
-        largura = parseFloat(document.getElementById("largura").value);
-        altura = parseFloat(document.getElementById("altura").value);
-
-        if (isNaN(largura) || isNaN(altura)) return alert("Preencha medidas!");
-
-        t = (largura * altura / 10000) * p.preco * q;
-        m = `${largura}x${altura}cm`;
+    if(p.tipo === "m2") {
+        const l = parseFloat(document.getElementById("largura").value);
+        const a = parseFloat(document.getElementById("altura").value);
+        t = (l * a / 10000) * p.preco * q;
+        m = `${l}x${a}cm`;
     } else {
         t = p.preco * q;
     }
 
-    sistema.carrinho.push({ nome: p.nome, medida: m, qtd: q, total: t, largura, altura });
+    sistema.carrinho.push({ nome: p.nome, medida: m, qtd: q, total: t });
 
     atualizarCarrinho();
     calcularTotais();
 }
 
-// ================= CARRINHO FUNÇÕES =================
-
-function removerItem(index) {
-    if (confirm("Remover item?")) {
-        sistema.carrinho.splice(index, 1);
-        atualizarCarrinho();
-        calcularTotais();
-    }
-}
-
-function limparCarrinho() {
-    if (confirm("Limpar carrinho?")) {
-        sistema.carrinho = [];
-        atualizarCarrinho();
-        calcularTotais();
-    }
-}
-
 function atualizarCarrinho() {
     const l = document.getElementById("listaItens");
-    if (!l) return;
-
     l.innerHTML = "";
 
     sistema.carrinho.forEach((i, index) => {
         l.innerHTML += `
-        <div style="border:1px solid #ddd;padding:10px;margin:5px 0;">
-            ${i.nome} (${i.medida}) x${i.qtd} - R$ ${i.total.toFixed(2)}
-            <button onclick="removerItem(${index})">❌</button>
-        </div>`;
+            <p style="font-size:0.85em;">
+                ${i.nome} (${i.medida}) x${i.qtd} - <b>R$ ${i.total.toFixed(2)}</b>
+                <button onclick="removerItem(${index})" style="margin-left:10px;">❌</button>
+            </p>
+        `;
     });
 }
 
-// ================= CÁLCULOS =================
+function removerItem(index) {
+    sistema.carrinho.splice(index, 1);
+    atualizarCarrinho();
+    calcularTotais();
+}
 
 function calcularTotais() {
     let sub = 0;
+
     sistema.carrinho.forEach(i => sub += i.total);
 
-    const pg = document.getElementById("formaPagamento")?.value;
+    const cep = document.getElementById("clienteCEP").value.replace(/\D/g, "");
+    let f = (cep.length === 8) ? (cep.startsWith("0") ? 15 : 40) : 0;
 
-    let tx = 0;
-    if (pg === "pix") tx = -(sub * 0.03);
-    else if (pg === "credito_3x") tx = sub * 0.06;
-    else if (pg === "credito_5x") tx = sub * 0.07;
+    const pg = document.getElementById("formaPagamento").value;
 
-    document.getElementById("totalGeral").textContent = (sub + tx).toFixed(2);
+    let tx =
+        (pg === "pix") ? -(sub * 0.05) :
+        (pg === "credito_3x") ? sub * 0.06 :
+        (pg === "credito_5x") ? sub * 0.07 : 0;
+
+    document.getElementById("frete").textContent = f.toFixed(2);
+    document.getElementById("desconto").textContent = Math.abs(tx).toFixed(2);
+    document.getElementById("totalGeral").textContent = (sub + f + tx).toFixed(2);
 }
 
-// ================= ORÇAMENTO =================
+function atualizarDataRef() {
+    const d = new Date();
+    const ref = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+    document.getElementById("numeroOrcamento").textContent = ref;
+    return ref;
+}
 
 function salvarOrcamento() {
-    if (sistema.carrinho.length === 0) return alert("Carrinho vazio!");
-
-    const numero = gerarNumeroOrcamento();
+    if(sistema.carrinho.length === 0) return alert("Carrinho vazio!");
 
     sistema.orcamentos.push({
-        numero,
-        cliente: document.getElementById("clienteNome").value || "Cliente",
-        itens: [...sistema.carrinho],
+        cliente: document.getElementById("clienteNome").value,
         total: document.getElementById("totalGeral").textContent,
+        data: atualizarDataRef(),
         status: "Orçamento"
     });
 
@@ -152,11 +136,8 @@ function salvarOrcamento() {
     atualizarListaOrcamentos();
 }
 
-// ================= CONVERTER =================
-
 function aprovarOrcamento(index) {
     const orc = sistema.orcamentos[index];
-    if (!orc) return;
 
     const numeroPedido = gerarNumeroPedido();
 
@@ -164,36 +145,31 @@ function aprovarOrcamento(index) {
         ...orc,
         numero: numeroPedido,
         status: "Produção",
-        data: new Date().toLocaleDateString()
+        dataAprovacao: new Date().toLocaleDateString()
     });
 
-    sistema.orcamentos.splice(index, 1);
+    orc.status = "Aprovado";
 
     salvarNoNavegador();
     atualizarListaOrcamentos();
     atualizarListaPedidos();
 }
 
-// ================= PRODUÇÃO =================
-
-function atualizarStatusPedido(index, novoStatus) {
-    sistema.pedidos[index].status = novoStatus;
-    salvarNoNavegador();
-    atualizarListaPedidos();
-}
-
-// ================= LISTAS =================
-
 function atualizarListaOrcamentos() {
     const div = document.getElementById("listaOrcamentos");
     if (!div) return;
 
-    div.innerHTML = "<strong>Orçamentos:</strong><br>";
+    div.innerHTML = "";
 
     sistema.orcamentos.forEach((o, i) => {
         div.innerHTML += `
-        #${o.numero} - ${o.cliente} - R$ ${o.total}
-        <button onclick="aprovarOrcamento(${i})">✔ Converter</button><br>`;
+            <p>
+                ${o.cliente} - R$ ${o.total}
+                <br>Status: ${o.status || "Orçamento"}
+                <br>
+                <button onclick="aprovarOrcamento(${i})">Aprovar</button>
+            </p>
+        `;
     });
 }
 
@@ -201,15 +177,32 @@ function atualizarListaPedidos() {
     const div = document.getElementById("listaPedidos");
     if (!div) return;
 
-    div.innerHTML = "<strong>Pedidos:</strong><br>";
+    div.innerHTML = "";
 
-    sistema.pedidos.forEach((p, i) => {
+    sistema.pedidos.forEach(p => {
         div.innerHTML += `
-        #${p.numero} - ${p.cliente} - R$ ${p.total}
-        <select onchange="atualizarStatusPedido(${i}, this.value)">
-            <option ${p.status==="Produção"?"selected":""}>Produção</option>
-            <option ${p.status==="Pronto"?"selected":""}>Pronto</option>
-            <option ${p.status==="Entregue"?"selected":""}>Entregue</option>
-        </select><br>`;
+            <p>
+                <b>#${p.numero}</b><br>
+                ${p.cliente} - R$ ${p.total}
+                <br>Status: ${p.status}
+            </p>
+        `;
     });
+}
+
+function enviarWhatsApp() {
+    let msg = "🧾 *Orçamento Prestige Comunicação Visual*\n\n";
+
+    msg += `👤 Cliente: ${document.getElementById("clienteNome").value}\n\n`;
+
+    sistema.carrinho.forEach(i => {
+        msg += `• ${i.nome} (${i.medida}) x${i.qtd} = R$ ${i.total.toFixed(2)}\n`;
+    });
+
+    msg += `\n💰 Total: R$ ${document.getElementById("totalGeral").textContent}`;
+
+    const numero = "5511922018290";
+    const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
+
+    window.open(url, "_blank");
 }
