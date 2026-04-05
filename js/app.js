@@ -8,8 +8,10 @@ window.onload = function () {
   });
   atualizarListaOrcamentos();
   atualizarListaPedidos();
+  calcularTotais(); // Atualiza totais ao carregar
 };
 
+// Calcula preço unitário e total do item
 function calcular() {
   const produtoIndex = document.getElementById("produto").value;
   const largura = parseFloat(document.getElementById("largura").value);
@@ -32,13 +34,16 @@ function calcular() {
   return { produto: produto.nome, largura, altura, quantidade, total };
 }
 
+// Adiciona item ao carrinho
 function adicionarItem() {
   const dados = calcular();
   if (!dados) return;
   sistema.carrinho.push(dados);
   atualizarListaItens();
+  calcularTotais(); // Atualiza totais ao adicionar
 }
 
+// Atualiza lista de itens na tela
 function atualizarListaItens() {
   const lista = document.getElementById("listaItens");
   lista.innerHTML = "";
@@ -47,6 +52,7 @@ function atualizarListaItens() {
   });
 }
 
+// Adicionar produtos personalizados
 function adicionarProdutoPersonalizado() {
   const nome = document.getElementById("novoProdutoNome").value.trim();
   const preco = parseFloat(document.getElementById("novoProdutoPreco").value);
@@ -71,6 +77,23 @@ function adicionarProdutoPersonalizado() {
   alert(`Produto "${nome}" adicionado! Agora você pode selecioná-lo no orçamento.`);
 }
 
+// Calcula frete, desconto e total geral
+function calcularTotais() {
+  let totalProdutos = 0;
+  sistema.carrinho.forEach(item => totalProdutos += item.total);
+
+  const frete = 20; // frete fixo
+  const desconto = totalProdutos > 200 ? totalProdutos * 0.1 : 0; // 10% se total > 200
+  const totalGeral = totalProdutos + frete - desconto;
+
+  document.getElementById("frete").textContent = frete.toFixed(2);
+  document.getElementById("desconto").textContent = desconto.toFixed(2);
+  document.getElementById("totalGeral").textContent = totalGeral.toFixed(2);
+
+  return { frete, desconto, totalGeral };
+}
+
+// Salvar orçamento e enviar via WhatsApp
 function salvarOrcamento() {
   const nome = document.getElementById("clienteNome").value;
   const contato = document.getElementById("clienteContato").value;
@@ -106,7 +129,8 @@ function salvarOrcamento() {
     totalGeral += item.total;
   });
 
-  resumo += `\nTotal Geral: R$ ${totalGeral.toFixed(2)}`;
+  const totais = calcularTotais();
+  resumo += `\nFrete: R$ ${totais.frete.toFixed(2)} | Desconto: R$ ${totais.desconto.toFixed(2)} | Total Geral: R$ ${totais.totalGeral.toFixed(2)}`;
   resumo += `\n${orcamento.prazo}`;
 
   const numero = "5511922018290";
@@ -127,6 +151,7 @@ function salvarOrcamento() {
   alert(`Orçamento Nº ${orcamento.numero} enviado! Status: Aguardando aprovação`);
 }
 
+// Gerar pedido a partir de orçamento
 function gerarPedido(orcamentoNumero) {
   const orc = sistema.orcamentos.find(o => o.numero === orcamentoNumero);
   if (!orc) {
@@ -149,6 +174,7 @@ function gerarPedido(orcamentoNumero) {
   atualizarListaPedidos();
 }
 
+// Atualiza lista de orçamentos
 function atualizarListaOrcamentos() {
   const div = document.getElementById("listaOrcamentos");
   div.innerHTML = "";
@@ -160,6 +186,7 @@ function atualizarListaOrcamentos() {
   });
 }
 
+// Atualiza lista de pedidos
 function atualizarListaPedidos() {
   const div = document.getElementById("listaPedidos");
   div.innerHTML = "";
@@ -167,3 +194,52 @@ function atualizarListaPedidos() {
     div.innerHTML += `<div>Pedido Nº ${pedido.numero} (vinculado ao Orçamento Nº ${pedido.vinculadoOrcamento}) - ${pedido.cliente.nome} | Status: ${pedido.status} | Data: ${pedido.data}</div>`;
   });
 }
+
+// Gerar PDF A4 do orçamento
+document.getElementById("gerarPDF").addEventListener("click", () => {
+  if (sistema.carrinho.length === 0) {
+    alert("Adicione pelo menos um item antes de gerar o PDF!");
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'mm', 'a4');
+  let y = 20;
+
+  // Cabeçalho
+  doc.setFontSize(16);
+  doc.text("Orçamento - Prestige Comunicação Visual", 105, y, { align: "center" });
+  y += 10;
+  const dataAtual = new Date().toLocaleDateString();
+  doc.setFontSize(12);
+  doc.text(`Data: ${dataAtual}`, 10, y);
+  y += 10;
+
+  // Tabela de itens
+  doc.text("Produto", 10, y);
+  doc.text("Qtd", 90, y);
+  doc.text("Área m²", 120, y);
+  doc.text("Total R$", 160, y);
+  y += 7;
+
+  sistema.carrinho.forEach(item => {
+    const area = ((item.largura * item.altura) / 10000).toFixed(2);
+    doc.text(item.produto, 10, y);
+    doc.text(item.quantidade.toString(), 90, y);
+    doc.text(area, 120, y);
+    doc.text(item.total.toFixed(2), 160, y);
+    y += 7;
+  });
+
+  // Totais
+  const totais = calcularTotais();
+  y += 10;
+  doc.text(`Frete: R$ ${totais.frete.toFixed(2)}`, 10, y);
+  y += 7;
+  doc.text(`Desconto: R$ ${totais.desconto.toFixed(2)}`, 10, y);
+  y += 7;
+  doc.setFontSize(14);
+  doc.text(`Total Geral: R$ ${totais.totalGeral.toFixed(2)}`, 10, y);
+
+  doc.save(`Orcamento_${Date.now()}.pdf`);
+});
