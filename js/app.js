@@ -1,98 +1,142 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prestige Comunicação Visual - Sistema de Pedidos</title>
-    <link rel="stylesheet" href="css/style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="js/db.js"></script>
-</head>
-<body style="background-color: #f1f5f9; font-family: sans-serif; margin: 0;">
+window.onload = () => {
+    popularProdutos();
+    atualizarDataRef();
+    atualizarListaOrcamentos();
+    calcularTotais();
+};
 
-    <header style="background: #1e293b; color: white; padding: 30px 0; border-bottom: 4px solid #3b82f6; text-align: center;">
-        <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
-            <img src="img/logo.png" alt="Prestige Logo" style="max-height: 90px; width: auto; margin-bottom: 10px;">
-            <h1 style="margin: 0; font-size: 1.5em; color: #3b82f6;">PRESTIGE COMUNICAÇÃO VISUAL</h1>
-            <p style="margin: 5px 0; font-size: 0.9em; opacity: 0.9;">
-                Rua Brasil, 304 - Rudge Ramos - São Bernardo do Campo - SP<br>
-                Contato: (11) 92201-82909
-            </p>
-            <div style="margin-top: 15px; font-size: 0.8em; color: #94a3b8;">
-                Ref. Orçamento: <span id="numeroOrcamento" style="color: white; font-weight: bold;">--/--</span>
-            </div>
-        </div>
-    </header>
+function cadastrarNovoProduto() {
+    const nome = document.getElementById("novoProdNome").value;
+    const preco = parseFloat(document.getElementById("novoProdPreco").value);
+    const tipo = document.getElementById("novoProdTipo").value;
+    if (!nome || isNaN(preco)) return alert("Preencha nome e preço!");
+    sistema.produtos.push({ nome, preco, tipo });
+    salvarNoNavegador();
+    popularProdutos();
+    alert("Produto cadastrado!");
+}
 
-    <main style="max-width: 1200px; margin: 20px auto; padding: 20px; display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px;">
-        
-        <div class="col-esquerda">
-            <section style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd;">
-                <h3 style="margin-top: 0;">+ Cadastrar Novo Produto na Tabela</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input type="text" id="novoProdNome" placeholder="Nome do Item" style="grid-column: span 2; padding: 10px;">
-                    <input type="number" id="novoProdPreco" placeholder="Preço (R$)" style="padding: 10px;">
-                    <select id="novoProdTipo" style="padding: 10px;">
-                        <option value="m2">Por m²</option>
-                        <option value="unid">Por Unidade</option>
-                    </select>
-                    <button onclick="cadastrarNovoProduto()" style="grid-column: span 2; background: #10b981; color: white; border: none; padding: 12px; cursor: pointer; border-radius: 4px;">Salvar na Tabela</button>
-                </div>
-            </section>
+function popularProdutos() {
+    const s = document.getElementById("produto");
+    if(!s) return;
+    s.innerHTML = "";
+    sistema.produtos.forEach((p, i) => {
+        s.innerHTML += `<option value="${i}">${p.nome} - R$ ${p.preco.toFixed(2)} (${p.tipo})</option>`;
+    });
+}
 
-            <section style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd;">
-                <h3 style="margin-top: 0;">Dados do Cliente</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input type="text" id="clienteNome" placeholder="Nome / Razão Social" style="grid-column: span 2; padding: 10px;">
-                    <input type="text" id="clienteDoc" placeholder="CPF / CNPJ" style="padding: 10px;">
-                    <input type="text" id="clienteCEP" oninput="calcularTotais()" placeholder="CEP" style="padding: 10px;">
-                    <input type="text" id="clienteEndereco" placeholder="Rua/Avenida, Bairro, Cidade" style="grid-column: span 2; padding: 10px;">
-                </div>
-            </section>
+function toggleMedidas() {
+    const p = sistema.produtos[document.getElementById("produto").value];
+    document.getElementById("medidasInput").style.display = (p.tipo === "unid") ? "none" : "flex";
+}
 
-            <section style="background: #eff6ff; padding: 20px; border-radius: 8px; border: 1px solid #3b82f6;">
-                <h3 style="margin-top: 0; color: #1e40af;">Calculadora de Pedido</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <select id="produto" onchange="toggleMedidas()" style="grid-column: span 2; padding: 10px;"></select>
-                    <div id="medidasInput" style="grid-column: span 2; display: flex; gap: 10px;">
-                        <input type="number" id="largura" placeholder="Largura (cm)" value="100" style="flex: 1; padding: 10px;">
-                        <input type="number" id="altura" placeholder="Altura (cm)" value="100" style="flex: 1; padding: 10px;">
-                    </div>
-                    <input type="number" id="quantidade" placeholder="Qtd" value="1" style="grid-column: span 2; padding: 10px;">
-                    <button onclick="adicionarItem()" style="grid-column: span 2; background: #3b82f6; color: white; border: none; padding: 12px; cursor: pointer; border-radius: 4px;">Adicionar ao Carrinho</button>
-                </div>
-            </section>
-        </div>
+function adicionarItem() {
+    const idx = document.getElementById("produto").value;
+    const p = sistema.produtos[idx];
+    const q = parseInt(document.getElementById("quantidade").value);
+    let t = 0, m = "Unid";
 
-        <div class="col-direita">
-            <section style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; position: sticky; top: 20px;">
-                <h3 style="margin-top: 0;">Resumo do Orçamento</h3>
-                <div id="listaItens" style="min-height: 100px; border-bottom: 1px solid #eee; margin-bottom: 15px;">
-                    </div>
-                
-                <label style="font-size: 0.8em; color: #666;">Forma de Pagamento:</label>
-                <select id="formaPagamento" onchange="calcularTotais()" style="width: 100%; padding: 10px; margin-bottom: 15px;">
-                    <option value="pix">PIX / Dinheiro (-5%)</option>
-                    <option value="debito" selected>Débito</option>
-                    <option value="credito_3x">Crédito 3x (+6%)</option>
-                    <option value="credito_5x">Crédito 5x (+7%)</option>
-                </select>
+    if(p.tipo === "m2") {
+        const l = parseFloat(document.getElementById("largura").value);
+        const a = parseFloat(document.getElementById("altura").value);
+        t = (l * a / 10000) * p.preco * q;
+        m = `${l}x${a}cm`;
+    } else { t = p.preco * q; }
 
-                <div style="background: #f8fafc; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
-                    <p style="display: flex; justify-content: space-between; margin: 5px 0;"><span>Frete:</span> <span>R$ <span id="frete">0.00</span></span></p>
-                    <p style="display: flex; justify-content: space-between; margin: 5px 0;"><span>Taxa/Desc:</span> <span>R$ <span id="desconto">0.00</span></span></p>
-                    <hr>
-                    <h4 style="display: flex; justify-content: space-between; margin: 10px 0;"><span>Total Geral:</span> <span>R$ <span id="totalGeral">0.00</span></span></h4>
-                </div>
+    sistema.carrinho.push({ nome: p.nome, medida: m, qtd: q, total: t });
+    atualizarCarrinho();
+    calcularTotais();
+}
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <button onclick="salvarOrcamento()" style="background: #64748b; color: white; border: none; padding: 12px; cursor: pointer; border-radius: 4px;">Salvar</button>
-                    <button id="gerarPDF" style="background: #ef4444; color: white; border: none; padding: 12px; cursor: pointer; border-radius: 4px;">Gerar PDF</button>
-                </div>
-            </section>
-        </div>
-    </main>
+function atualizarCarrinho() {
+    const l = document.getElementById("listaItens");
+    l.innerHTML = "";
+    sistema.carrinho.forEach(i => {
+        l.innerHTML += `<p style="font-size: 0.85em; margin: 5px 0;">${i.nome} (${i.medida}) x${i.qtd} - <b>R$ ${i.total.toFixed(2)}</b></p>`;
+    });
+}
 
-    <script src="js/app.js"></script>
-</body>
-</html>
+function calcularTotais() {
+    let sub = 0;
+    sistema.carrinho.forEach(i => sub += i.total);
+    const cep = document.getElementById("clienteCEP").value.replace(/\D/g, "");
+    let f = (cep.length === 8) ? (cep.startsWith("0") ? 15 : 40) : 0;
+    const pg = document.getElementById("formaPagamento").value;
+    let tx = (pg === "pix") ? -(sub * 0.05) : (pg === "credito_3x" ? sub * 0.06 : (pg === "credito_5x" ? sub * 0.07 : 0));
+    document.getElementById("frete").textContent = f.toFixed(2);
+    document.getElementById("desconto").textContent = Math.abs(tx).toFixed(2);
+    document.getElementById("totalGeral").textContent = (sub + f + tx).toFixed(2);
+}
+
+function atualizarDataRef() {
+    const d = new Date(); d.setHours(d.getHours() + 1);
+    const ref = `${d.getFullYear().toString().slice(-2)}/${d.getDate()}/${d.getHours()}h${d.getMinutes()}`;
+    document.getElementById("numeroOrcamento").textContent = ref;
+    return ref;
+}
+
+function salvarOrcamento() {
+    if(sistema.carrinho.length === 0) return alert("Carrinho vazio!");
+    sistema.orcamentos.push({ 
+        cliente: document.getElementById("clienteNome").value, 
+        total: document.getElementById("totalGeral").textContent,
+        data: atualizarDataRef()
+    });
+    sistema.carrinho = [];
+    salvarNoNavegador();
+    atualizarCarrinho();
+    atualizarListaOrcamentos();
+}
+
+function atualizarListaOrcamentos() {
+    const div = document.getElementById("listaOrcamentos");
+    div.innerHTML = "<strong>Histórico:</strong><br>";
+    sistema.orcamentos.slice(-3).reverse().forEach(o => {
+        div.innerHTML += `${o.cliente} - R$ ${o.total}<br>`;
+    });
+}
+
+// PDF COM LOGO CENTRALIZADA E ENDEREÇO PRESTIGE
+document.getElementById("gerarPDF")?.addEventListener("click", () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const ref = atualizarDataRef();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Logo
+    const imgLogo = new Image();
+    imgLogo.src = 'img/logo.png';
+    doc.addImage(imgLogo, 'PNG', (pageWidth / 2) - 25, 10, 50, 25);
+
+    // Endereço Prestige Centralizado
+    doc.setFontSize(14); doc.setFont("helvetica", "bold");
+    doc.text("PRESTIGE COMUNICAÇÃO VISUAL", pageWidth / 2, 42, { align: "center" });
+    doc.setFontSize(9); doc.setFont("helvetica", "normal");
+    doc.text("Rua Brasil, 304 - Rudge Ramos - São Bernardo do Campo - SP", pageWidth / 2, 48, { align: "center" });
+    doc.text("Contato: (11) 92201-82909", pageWidth / 2, 53, { align: "center" });
+    doc.line(10, 56, 200, 56);
+
+    // Dados Cliente
+    doc.setFontSize(10);
+    doc.text(`Ref: ${ref}`, 10, 66);
+    doc.text(`Cliente: ${document.getElementById("clienteNome").value}`, 10, 72);
+    doc.text(`CPF/CNPJ: ${document.getElementById("clienteDoc").value}`, 10, 78);
+    doc.text(`Endereço: ${document.getElementById("clienteEndereco").value}`, 10, 84);
+    
+    let y = 98;
+    doc.setFont("helvetica", "bold");
+    doc.text("Item", 10, y); doc.text("Qtd", 150, y); doc.text("Total", 180, y);
+    doc.line(10, y+2, 200, y+2); y += 10;
+
+    doc.setFont("helvetica", "normal");
+    sistema.carrinho.forEach(i => {
+        doc.text(`${i.nome} (${i.medida})`, 10, y);
+        doc.text(`${i.qtd}`, 150, y);
+        doc.text(`R$ ${i.total.toFixed(2)}`, 180, y);
+        y += 8;
+    });
+
+    doc.setFont("helvetica", "bold");
+    doc.text(`TOTAL FINAL: R$ ${document.getElementById("totalGeral").textContent}`, 10, y + 10);
+    doc.save(`Prestige_${ref.replace(/\//g,'-')}.pdf`);
+});
