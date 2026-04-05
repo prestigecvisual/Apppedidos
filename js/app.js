@@ -1,3 +1,17 @@
+// Inicialização do sistema
+const sistema = {
+  produtos: [
+    { nome: "Acrílico 3mm", preco: 50 },
+    { nome: "Acrílico 5mm", preco: 80 },
+  ],
+  carrinho: [],
+  orcamentos: [],
+  pedidos: [],
+  contadorOrcamento: 1,
+  contadorPedido: 1
+};
+
+// Carrega produtos no select e listas ao abrir a página
 window.onload = function () {
   const select = document.getElementById("produto");
   sistema.produtos.forEach((prod, index) => {
@@ -10,6 +24,8 @@ window.onload = function () {
   atualizarListaPedidos();
   calcularTotais(); // Atualiza totais ao carregar
 };
+
+// --------------------- FUNÇÕES DE CÁLCULO ---------------------
 
 // Calcula preço unitário e total do item
 function calcular() {
@@ -34,13 +50,47 @@ function calcular() {
   return { produto: produto.nome, largura, altura, quantidade, total };
 }
 
+// Função para calcular frete baseado no CEP
+function calcularFretePorCEP(cep) {
+  cep = cep.replace(/\D/g, "");
+  if (!cep || cep.length !== 8) return 0;
+
+  if (cep >= "01000000" && cep <= "19999999") return 15; // SP
+  else if (cep >= "20000000" && cep <= "28999999") return 25; // RJ
+  else return 40; // resto do Brasil
+}
+
+// Calcula totais do carrinho
+function calcularTotais() {
+  let totalProdutos = 0;
+  sistema.carrinho.forEach(item => totalProdutos += item.total);
+
+  const cep = document.getElementById("clienteCEP")?.value || "";
+  const frete = calcularFretePorCEP(cep);
+  const desconto = totalProdutos > 200 ? totalProdutos * 0.1 : 0;
+  const totalGeral = totalProdutos + frete - desconto;
+
+  document.getElementById("frete").textContent = frete.toFixed(2);
+  document.getElementById("desconto").textContent = desconto.toFixed(2);
+  document.getElementById("totalGeral").textContent = totalGeral.toFixed(2);
+
+  return { frete, desconto, totalGeral };
+}
+
+// Recalcula totais quando o CEP muda
+document.getElementById("clienteCEP").addEventListener("input", () => {
+  calcularTotais();
+});
+
+// --------------------- FUNÇÕES DE CARRINHO ---------------------
+
 // Adiciona item ao carrinho
 function adicionarItem() {
   const dados = calcular();
   if (!dados) return;
   sistema.carrinho.push(dados);
   atualizarListaItens();
-  calcularTotais(); // Atualiza totais ao adicionar
+  calcularTotais();
 }
 
 // Atualiza lista de itens na tela
@@ -77,21 +127,7 @@ function adicionarProdutoPersonalizado() {
   alert(`Produto "${nome}" adicionado! Agora você pode selecioná-lo no orçamento.`);
 }
 
-// Calcula frete, desconto e total geral
-function calcularTotais() {
-  let totalProdutos = 0;
-  sistema.carrinho.forEach(item => totalProdutos += item.total);
-
-  const frete = 20; // frete fixo
-  const desconto = totalProdutos > 200 ? totalProdutos * 0.1 : 0; // 10% se total > 200
-  const totalGeral = totalProdutos + frete - desconto;
-
-  document.getElementById("frete").textContent = frete.toFixed(2);
-  document.getElementById("desconto").textContent = desconto.toFixed(2);
-  document.getElementById("totalGeral").textContent = totalGeral.toFixed(2);
-
-  return { frete, desconto, totalGeral };
-}
+// --------------------- ORÇAMENTO E PEDIDOS ---------------------
 
 // Salvar orçamento e enviar via WhatsApp
 function salvarOrcamento() {
@@ -123,10 +159,10 @@ function salvarOrcamento() {
 
   let resumo = `Orçamento Nº ${orcamento.numero} - Prestige Comunicação Visual\n\nCliente: ${nome}\nContato: ${contato}\nTelefone: ${telefone}\nEndereço: ${endereco}\n\n`;
 
-  let totalGeral = 0;
+  let totalProdutos = 0;
   orcamento.itens.forEach((item) => {
     resumo += `${item.produto} - ${item.largura}x${item.altura} cm | Qtd: ${item.quantidade} | R$ ${item.total.toFixed(2)}\n`;
-    totalGeral += item.total;
+    totalProdutos += item.total;
   });
 
   const totais = calcularTotais();
@@ -144,6 +180,7 @@ function salvarOrcamento() {
   document.getElementById("clienteContato").value = "";
   document.getElementById("clienteTelefone").value = "";
   document.getElementById("clienteEndereco").value = "";
+  document.getElementById("clienteCEP").value = "";
 
   atualizarListaOrcamentos();
   atualizarListaPedidos();
@@ -195,7 +232,7 @@ function atualizarListaPedidos() {
   });
 }
 
-// Gerar PDF A4 do orçamento
+// --------------------- GERAR PDF ---------------------
 document.getElementById("gerarPDF").addEventListener("click", () => {
   if (sistema.carrinho.length === 0) {
     alert("Adicione pelo menos um item antes de gerar o PDF!");
@@ -206,16 +243,16 @@ document.getElementById("gerarPDF").addEventListener("click", () => {
   const doc = new jsPDF('p', 'mm', 'a4');
   let y = 20;
 
-  // Cabeçalho
   doc.setFontSize(16);
   doc.text("Orçamento - Prestige Comunicação Visual", 105, y, { align: "center" });
   y += 10;
+
   const dataAtual = new Date().toLocaleDateString();
   doc.setFontSize(12);
   doc.text(`Data: ${dataAtual}`, 10, y);
   y += 10;
 
-  // Tabela de itens
+  // Cabeçalho da tabela
   doc.text("Produto", 10, y);
   doc.text("Qtd", 90, y);
   doc.text("Área m²", 120, y);
@@ -230,38 +267,6 @@ document.getElementById("gerarPDF").addEventListener("click", () => {
     doc.text(item.total.toFixed(2), 160, y);
     y += 7;
   });
-
-  // Função para calcular frete baseado no CEP
-function calcularFretePorCEP(cep) {
-  cep = cep.replace(/\D/g, "");
-  if (!cep || cep.length !== 8) return 0;
-
-  if (cep >= "01000000" && cep <= "19999999") return 15; // SP
-  else if (cep >= "20000000" && cep <= "28999999") return 25; // RJ
-  else return 40; // resto do Brasil
-}
-
-// Atualiza totais do carrinho
-function calcularTotais() {
-  let totalProdutos = 0;
-  sistema.carrinho.forEach(item => totalProdutos += item.total);
-
-  const cep = document.getElementById("clienteCEP")?.value || "";
-  const frete = calcularFretePorCEP(cep);
-  const desconto = totalProdutos > 200 ? totalProdutos * 0.1 : 0;
-  const totalGeral = totalProdutos + frete - desconto;
-
-  document.getElementById("frete").textContent = frete.toFixed(2);
-  document.getElementById("desconto").textContent = desconto.toFixed(2);
-  document.getElementById("totalGeral").textContent = totalGeral.toFixed(2);
-
-  return { frete, desconto, totalGeral };
-}
-
-// Recalcula totais sempre que o CEP muda
-document.getElementById("clienteCEP").addEventListener("input", () => {
-  calcularTotais();
-});
 
   // Totais
   const totais = calcularTotais();
