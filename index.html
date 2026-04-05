@@ -101,7 +101,29 @@
         <!-- PEDIDOS / PRODUÇÃO -->
         <section class="card">
             <h3>🏭 Produção / Pedidos</h3>
-            <div id="listaPedidos"></div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+
+    <div class="card">
+        <h4>🟡 Produção</h4>
+        <div id="col-producao"></div>
+    </div>
+
+    <div class="card">
+        <h4>🔵 Em Andamento</h4>
+        <div id="col-andamento"></div>
+    </div>
+
+    <div class="card">
+        <h4>🟢 Finalizado</h4>
+        <div id="col-finalizado"></div>
+    </div>
+
+    <div class="card">
+        <h4>⚫ Entregue</h4>
+        <div id="col-entregue"></div>
+    </div>
+
+</div>
         </section>
 
     </div>
