@@ -16,7 +16,8 @@
             <div>
                 <h1 style="margin: 0; font-size: 1.8em;">Prestige Comunicação Visual</h1>
                 <p style="margin: 5px 0 0 0; font-size: 0.85em; opacity: 0.8;">
-                    Rua Exemplo, 123 - Bairro - Cidade/UF | Contato: (11) 99999-9999
+                    Rua 
+                    Brasil, 304 - Rudge Ramos - São Bernardo do Campo - SP | Contato: (11) 92201-8290
                 </p>
             </div>
             <div style="text-align: right;">
@@ -72,7 +73,7 @@
                 
                 <label style="font-size: 0.8em;">Pagamento:</label>
                 <select id="formaPagamento" onchange="calcularTotais()" style="width: 100%; padding: 10px; margin-bottom: 15px;">
-                    <option value="pix">PIX / Dinheiro (-5%)</option>
+                    <option value="pix">PIX / Dinheiro (-3%)</option>
                     <option value="debito">Débito</option>
                     <option value="credito_3x">Crédito 3x (+6%)</option>
                     <option value="credito_5x">Crédito 5x (+7%)</option>
@@ -88,6 +89,9 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <button onclick="salvarOrcamento()" style="background: #64748b; color: white; border: none; padding: 12px; cursor: pointer; border-radius: 4px;">Salvar</button>
                     <button id="gerarPDF" style="background: #ef4444; color: white; border: none; padding: 12px; cursor: pointer; border-radius: 4px;">PDF</button>
+                    <div id="listaOrcamentos" style="margin-top: 20px; font-size: 0.8em; color: #666; border-top: 1px solid #ddd; padding-top: 10px;">
+    <strong>Últimos Orçamentos:</strong><br>
+    </div>
                 </div>
             </section>
         </div>
