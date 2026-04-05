@@ -16,7 +16,8 @@ header {
 }
 
 header .logo img {
-  height: 60px;
+  height: 80px;
+  width: auto;
 }
 
 header .contato p {
