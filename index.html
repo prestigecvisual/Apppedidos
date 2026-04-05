@@ -11,92 +11,102 @@
 </head>
 <body>
 
-    <header style="background: #1e293b; color: white; padding: 20px 0; border-bottom: 4px solid #3b82f6;">
-        <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <h1 style="margin: 0; font-size: 1.8em;">Prestige Comunicação Visual</h1>
-                <p style="margin: 5px 0 0 0; font-size: 0.85em; opacity: 0.8;">
-                    Rua 
-                    Brasil, 304 - Rudge Ramos - São Bernardo do Campo - SP | Contato: (11) 92201-8290
-                </p>
-            </div>
-            <div style="text-align: right;">
-                <p style="margin: 0;">Ref: <span id="numeroOrcamento">--/--/--</span></p>
-            </div>
+<header style="background: #1e293b; color: white; padding: 20px 0; border-bottom: 4px solid #3b82f6;">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between;">
+        <div>
+            <h1 style="margin: 0;">Prestige Comunicação Visual</h1>
+            <p style="font-size: 0.85em;">
+                Rua Brasil, 304 - Rudge Ramos - São Bernardo do Campo - SP | (11) 92201-8290
+            </p>
         </div>
-    </header>
-
-    <main style="max-width: 1200px; margin: 30px auto; padding: 0 20px; display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 30px;">
-        
-        <div class="col-esquerda">
-            <section style="background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
-                <h3 style="margin-top: 0; color: #334155;">+ Novo Produto na Tabela</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input type="text" id="novoProdNome" placeholder="Nome do Item" style="grid-column: span 2; padding: 10px; border: 1px solid #cbd5e1;">
-                    <input type="number" id="novoProdPreco" placeholder="Preço (R$)" style="padding: 10px; border: 1px solid #cbd5e1;">
-                    <select id="novoProdTipo" style="padding: 10px; border: 1px solid #cbd5e1;">
-                        <option value="m2">Por m²</option>
-                        <option value="unid">Por Unidade</option>
-                    </select>
-                    <button onclick="cadastrarNovoProduto()" style="grid-column: span 2; background: #10b981; color: white; border: none; padding: 12px; cursor: pointer; border-radius: 4px; font-weight: bold;">Salvar na Tabela</button>
-                </div>
-            </section>
-
-            <section style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
-                <h3 style="margin-top: 0;">Dados do Cliente</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input type="text" id="clienteNome" placeholder="Nome / Razão Social" style="grid-column: span 2; padding: 10px;">
-                    <input type="text" id="clienteDoc" placeholder="CPF / CNPJ" style="padding: 10px;">
-                    <input type="text" id="clienteCEP" placeholder="CEP (00000-000)" style="padding: 10px;">
-                    <input type="text" id="clienteEndereco" placeholder="Endereço: Rua/Avenida, Bairro, Cidade" style="grid-column: span 2; padding: 10px;">
-                </div>
-            </section>
-
-            <section style="background: #f1f5f9; padding: 20px; border-radius: 8px; border: 1px solid #3b82f6;">
-                <h3 style="margin-top: 0; color: #1e40af;">Calculadora</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <select id="produto" onchange="toggleMedidas()" style="grid-column: span 2; padding: 10px;"></select>
-                    <div id="medidasInput" style="grid-column: span 2; display: flex; gap: 10px;">
-                        <input type="number" id="largura" placeholder="L (cm)" value="100" style="flex: 1; padding: 10px;">
-                        <input type="number" id="altura" placeholder="A (cm)" value="100" style="flex: 1; padding: 10px;">
-                    </div>
-                    <input type="number" id="quantidade" placeholder="Qtd" value="1" style="grid-column: span 2; padding: 10px;">
-                    <button onclick="adicionarItem()" style="grid-column: span 2; background: #3b82f6; color: white; border: none; padding: 12px; cursor: pointer; border-radius: 4px; font-weight: bold;">Adicionar ao Carrinho</button>
-                </div>
-            </section>
+        <div>
+            <p>Ref: <span id="numeroOrcamento">--/--/--</span></p>
         </div>
-
-        <div class="col-direita">
-            <section style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; position: sticky; top: 20px;">
-                <h3>Resumo</h3>
-                <div id="listaItens" style="min-height: 50px; margin-bottom: 20px; border-bottom: 1px solid #f1f5f9;"></div>
-                
-                <label style="font-size: 0.8em;">Pagamento:</label>
-                <select id="formaPagamento" onchange="calcularTotais()" style="width: 100%; padding: 10px; margin-bottom: 15px;">
-                    <option value="pix">PIX / Dinheiro (-3%)</option>
-                    <option value="debito">Débito</option>
-                    <option value="credito_3x">Crédito 3x (+6%)</option>
-                    <option value="credito_5x">Crédito 5x (+7%)</option>
-                </select>
-
-                <div style="background: #f8fafc; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
-                    <p style="display: flex; justify-content: space-between; margin: 5px 0;"><span>Frete:</span> <span>R$ <span id="frete">0.00</span></span></p>
-                    <p style="display: flex; justify-content: space-between; margin: 5px 0;"><span>Taxa/Desc:</span> <span>R$ <span id="desconto">0.00</span></span></p>
-                    <hr>
-                    <h4 style="display: flex; justify-content: space-between; margin: 10px 0;"><span>TOTAL:</span> <span>R$ <span id="totalGeral">0.00</span></span></h4>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <button onclick="salvarOrcamento()" style="background: #64748b; color: white; border: none; padding: 12px; cursor: pointer; border-radius: 4px;">Salvar</button>
-                    <button id="gerarPDF" style="background: #ef4444; color: white; border: none; padding: 12px; cursor: pointer; border-radius: 4px;">PDF</button>
-                    <button onclick="enviarWhatsApp()" style="background:#25d366;color:white;">WhatsApp</button>
-                    <div id="listaOrcamentos" style="margin-top: 20px; font-size: 0.8em; color: #666; border-top: 1px solid #ddd; padding-top: 10px;">
-    <strong>Últimos Orçamentos:</strong><br>
     </div>
-                </div>
-            </section>
-        </div>
-    </main>
+</header>
+
+<main style="max-width: 1200px; margin: 30px auto; display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 30px;">
+    
+    <!-- ESQUERDA -->
+    <div>
+
+        <!-- PRODUTO -->
+        <section class="card">
+            <h3>+ Novo Produto</h3>
+            <input type="text" id="novoProdNome" placeholder="Nome">
+            <input type="number" id="novoProdPreco" placeholder="Preço">
+            <select id="novoProdTipo">
+                <option value="m2">m²</option>
+                <option value="unid">Unidade</option>
+            </select>
+            <button onclick="cadastrarNovoProduto()">Salvar</button>
+        </section>
+
+        <!-- CLIENTE -->
+        <section class="card">
+            <h3>Cliente</h3>
+            <input type="text" id="clienteNome" placeholder="Nome">
+            <input type="text" id="clienteDoc" placeholder="CPF/CNPJ">
+            <input type="text" id="clienteCEP" placeholder="CEP">
+            <input type="text" id="clienteEndereco" placeholder="Endereço">
+        </section>
+
+        <!-- CALCULADORA -->
+        <section class="card">
+            <h3>Calculadora</h3>
+            <select id="produto" onchange="toggleMedidas()"></select>
+
+            <div id="medidasInput">
+                <input type="number" id="largura" placeholder="L">
+                <input type="number" id="altura" placeholder="A">
+            </div>
+
+            <input type="number" id="quantidade" value="1">
+            <button onclick="adicionarItem()">Adicionar</button>
+        </section>
+
+    </div>
+
+    <!-- DIREITA -->
+    <div>
+
+        <!-- RESUMO -->
+        <section class="card">
+            <h3>Resumo</h3>
+
+            <div id="listaItens"></div>
+
+            <select id="formaPagamento" onchange="calcularTotais()">
+                <option value="pix">PIX (-5%)</option>
+                <option value="debito">Débito</option>
+                <option value="credito_3x">3x (+6%)</option>
+                <option value="credito_5x">5x (+7%)</option>
+            </select>
+
+            <p>Frete: R$ <span id="frete">0.00</span></p>
+            <p>Taxa/Desc: R$ <span id="desconto">0.00</span></p>
+            <h3>Total: R$ <span id="totalGeral">0.00</span></h3>
+
+            <button onclick="salvarOrcamento()">Salvar Orçamento</button>
+            <button id="gerarPDF">Gerar PDF</button>
+            <button onclick="enviarWhatsApp()">WhatsApp</button>
+        </section>
+
+        <!-- ORÇAMENTOS -->
+        <section class="card">
+            <h3>📄 Orçamentos</h3>
+            <div id="listaOrcamentos"></div>
+        </section>
+
+        <!-- PEDIDOS / PRODUÇÃO -->
+        <section class="card">
+            <h3>🏭 Produção / Pedidos</h3>
+            <div id="listaPedidos"></div>
+        </section>
+
+    </div>
+
+</main>
 
 </body>
 </html>
