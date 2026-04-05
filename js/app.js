@@ -1,5 +1,5 @@
 // ================================
-// App Pedidos - app.js (final)
+// App Pedidos - app.js (Corrigido)
 // ================================
 
 // Inicialização ao carregar a página
@@ -8,52 +8,84 @@ window.onload = function () {
   atualizarListaOrcamentos();
   atualizarListaPedidos();
   atualizarDashboard();
-  calcularTotais(); // Atualiza totais ao carregar
+  atualizarDataAutomatica(); // Nova função para o formato AA/DD/HH+1
+  calcularTotais(); 
 };
 
 // ================================
-// Funções básicas
+// Funções de Utilidade e Data
 // ================================
 
-// Popular select de produtos
+function atualizarDataAutomatica() {
+  const agora = new Date();
+  agora.setHours(agora.getHours() + 1); // Soma 1 hora
+
+  const aa = agora.getFullYear().toString().slice(-2);
+  const dd = String(agora.getDate()).padStart(2, '0');
+  const hh = String(agora.getHours()).padStart(2, '0');
+  const mm = String(agora.getMinutes()).padStart(2, '0');
+
+  const formatoFinal = `${aa}/${dd}/${hh}:${mm}`;
+  
+  // Atualiza no HTML (se o elemento existir)
+  const elNumero = document.getElementById("numeroOrcamento");
+  if (elNumero) {
+    // Usamos o formato como parte do "ID" do orçamento ou apenas exibição
+    elNumero.textContent = `${sistema.contadorOrcamento} (${formatoFinal})`;
+  }
+  return formatoFinal;
+}
+
+// ================================
+// Funções de Produtos e Cálculos
+// ================================
+
 function popularProdutos() {
   const select = document.getElementById("produto");
+  if (!select) return;
   select.innerHTML = "";
   sistema.produtos.forEach((prod, index) => {
     const option = document.createElement("option");
     option.value = index;
-    option.textContent = `${prod.nome} - R$ ${prod.preco}`;
+    option.textContent = `${prod.nome} - R$ ${prod.preco.toFixed(2)}/m²`;
     select.appendChild(option);
   });
 }
 
-// Calcular preço unitário e total do item
 function calcular() {
   const produtoIndex = document.getElementById("produto").value;
   const largura = parseFloat(document.getElementById("largura").value);
   const altura = parseFloat(document.getElementById("altura").value);
   const quantidade = parseInt(document.getElementById("quantidade").value);
 
-  if (produtoIndex === "" || !largura || !altura || !quantidade) {
-    alert("Preencha todos os campos do produto!");
-    return;
+  if (produtoIndex === "" || isNaN(largura) || isNaN(altura) || isNaN(quantidade)) {
+    alert("Preencha largura, altura e quantidade!");
+    return null;
   }
 
   const produto = sistema.produtos[produtoIndex];
-  const area = (largura * altura) / 10000;
-  const precoUnitario = produto.preco * area * 10;
-  const total = precoUnitario * quantidade;
+  // Cálculo de área em m² (cm * cm / 10000)
+  const areaM2 = (largura * altura) / 10000;
+  // Preço unitário = Preço do m² * Área
+  const precoUnitario = produto.preco * areaM2;
+  const totalItem = precoUnitario * quantidade;
 
-  document.getElementById("resultado").innerHTML =
-    `Produto: ${produto.nome} <br>` +
-    `Área: ${area.toFixed(2)} m² <br>` +
-    `Preço unitário: R$ ${precoUnitario.toFixed(2)} <br>` +
-    `Total: R$ ${total.toFixed(2)}`;
+  document.getElementById("resultado").innerHTML = `
+    <strong>${produto.nome}</strong><br>
+    Área: ${areaM2.toFixed(2)} m² | Unitário: R$ ${precoUnitario.toFixed(2)}<br>
+    <strong>Subtotal: R$ ${totalItem.toFixed(2)}</strong>
+  `;
 
-  return { produto: produto.nome, largura, altura, quantidade, total };
+  return { 
+    nome: produto.nome, 
+    largura, 
+    altura, 
+    quantidade, 
+    area: areaM2, 
+    total: totalItem 
+  };
 }
 
-// Adicionar item ao carrinho
 function adicionarItem() {
   const dados = calcular();
   if (!dados) return;
@@ -62,182 +94,90 @@ function adicionarItem() {
   calcularTotais();
 }
 
-// Atualizar lista de itens na tela
 function atualizarListaItens() {
   const lista = document.getElementById("listaItens");
   lista.innerHTML = "";
   sistema.carrinho.forEach((item, index) => {
-    lista.innerHTML += `<div>
-      ${item.produto} - ${item.largura}x${item.altura} cm | 
-      Qtd: ${item.quantidade} | Total: R$ ${item.total.toFixed(2)}
-    </div>`;
+    lista.innerHTML += `
+      <div class="item-carrinho">
+        ${item.nome} (${item.largura}x${item.altura}cm) x${item.quantidade} 
+        <strong>R$ ${item.total.toFixed(2)}</strong>
+      </div>`;
   });
 }
 
-// Adicionar produtos personalizados
-function adicionarProdutoPersonalizado() {
-  const nome = document.getElementById("novoProdutoNome").value.trim();
-  const preco = parseFloat(document.getElementById("novoProdutoPreco").value);
-
-  if (!nome || !preco || preco <= 0) {
-    alert("Preencha corretamente o nome e preço do produto!");
-    return;
-  }
-
-  const novoProduto = { nome, preco };
-  sistema.produtos.push(novoProduto);
-  popularProdutos();
-
-  document.getElementById("novoProdutoNome").value = "";
-  document.getElementById("novoProdutoPreco").value = "";
-  alert(`Produto "${nome}" adicionado!`);
-}
-
 // ================================
-// Cálculos de frete, desconto e totais
+// Totais e Frete
 // ================================
 
-// Calcula frete por CEP
-function calcularFretePorCEP(cep) {
-  cep = cep.replace(/\D/g, "");
-  if (!cep || cep.length !== 8) return 0;
-  if (cep >= "01000000" && cep <= "19999999") return 15; // SP
-  if (cep >= "20000000" && cep <= "28999999") return 25; // RJ
-  return 40; // resto do Brasil
-}
-
-// Calcular totais
 function calcularTotais() {
   let totalProdutos = 0;
   sistema.carrinho.forEach(item => totalProdutos += item.total);
 
-  const cep = document.getElementById("clienteCEP")?.value || "";
-  const frete = calcularFretePorCEP(cep);
-  const desconto = totalProdutos > 200 ? totalProdutos * 0.1 : 0;
+  const cep = document.getElementById("clienteCEP")?.value.replace(/\D/g, "") || "";
+  let frete = 0;
+
+  // Lógica Simples de Frete
+  if (cep.length === 8) {
+    if (cep.startsWith("0")) frete = 15.00; // Grande SP
+    else frete = 40.00; // Outros
+  }
+
+  const desconto = totalProdutos > 500 ? totalProdutos * 0.05 : 0; // 5% acima de 500 reais
   const totalGeral = totalProdutos + frete - desconto;
 
   document.getElementById("frete").textContent = frete.toFixed(2);
   document.getElementById("desconto").textContent = desconto.toFixed(2);
   document.getElementById("totalGeral").textContent = totalGeral.toFixed(2);
 
-  atualizarDashboard();
-
   return { frete, desconto, totalGeral };
 }
 
-// Recalcular totais sempre que CEP mudar
-document.getElementById("clienteCEP")?.addEventListener("input", () => {
-  calcularTotais();
-});
+// Ouvinte para o CEP calcular frete automático
+document.getElementById("clienteCEP")?.addEventListener("blur", calcularTotais);
 
 // ================================
-// Orçamentos
+// Gestão de Orçamentos e PDF
 // ================================
 
 function salvarOrcamento() {
   const nome = document.getElementById("clienteNome").value;
-  const contato = document.getElementById("clienteContato").value;
-  const telefone = document.getElementById("clienteTelefone").value;
-  const endereco = document.getElementById("clienteEndereco").value;
-
-  if (!nome || !contato || !telefone || !endereco) {
-    alert("Preencha todas as informações do cliente!");
-    return;
-  }
-  if (sistema.carrinho.length === 0) {
-    alert("Adicione pelo menos um item ao orçamento!");
+  if (!nome || sistema.carrinho.length === 0) {
+    alert("Nome do cliente e itens no carrinho são obrigatórios!");
     return;
   }
 
-  const numeroOrcamento = sistema.contadorOrcamento++;
+  const dataHoraId = atualizarDataAutomatica();
   const orcamento = {
-    numero: numeroOrcamento,
-    cliente: { nome, contato, telefone, endereco },
+    numero: sistema.contadorOrcamento++,
+    dataID: dataHoraId,
+    cliente: nome,
     itens: [...sistema.carrinho],
-    status: "Aguardando aprovação",
-    prazo: "Orçamento válido por 10 dias úteis",
-    data: new Date().toLocaleDateString()
+    total: parseFloat(document.getElementById("totalGeral").textContent),
+    status: "Pendente"
   };
 
   sistema.orcamentos.push(orcamento);
-
-  // Limpa carrinho
-  sistema.carrinho = [];
+  sistema.carrinho = []; // Limpa carrinho após salvar
+  
   atualizarListaItens();
-  document.getElementById("resultado").innerHTML = "";
-  document.getElementById("clienteNome").value = "";
-  document.getElementById("clienteContato").value = "";
-  document.getElementById("clienteTelefone").value = "";
-  document.getElementById("clienteEndereco").value = "";
-  document.getElementById("clienteCEP").value = "";
-
   atualizarListaOrcamentos();
   atualizarDashboard();
-  alert(`Orçamento Nº ${orcamento.numero} salvo!`);
+  alert("Orçamento salvo com sucesso!");
 }
 
-// Atualizar lista de orçamentos
 function atualizarListaOrcamentos() {
   const div = document.getElementById("listaOrcamentos");
+  if (!div) return;
   div.innerHTML = "";
-  sistema.orcamentos.forEach((orc) => {
-    div.innerHTML += `<div>
-      Orçamento Nº ${orc.numero} - ${orc.cliente.nome} | Status: ${orc.status} | Data: ${orc.data} 
-      <button onclick="aprovarOrcamento(${orc.numero})">Aprovar</button>
-      <button onclick="gerarPedido(${orc.numero})">Gerar Pedido</button>
-    </div>`;
+  sistema.orcamentos.forEach(orc => {
+    div.innerHTML += `
+      <div class="card-historico">
+        ID: ${orc.dataID} | <strong>${orc.cliente}</strong> | R$ ${orc.total.toFixed(2)}
+        <button onclick="aprovarOrcamento(${orc.numero})">Aprovar</button>
+      </div>`;
   });
 }
-
-// Aprovar orçamento
-function aprovarOrcamento(numero) {
-  const orc = sistema.orcamentos.find(o => o.numero === numero);
-  if (orc) {
-    orc.status = "Aprovado";
-    atualizarListaOrcamentos();
-    atualizarDashboard();
-    alert(`Orçamento Nº ${numero} aprovado!`);
-  }
-}
-
-// ================================
-// Pedidos
-// ================================
-
-function gerarPedido(orcamentoNumero) {
-  const orc = sistema.orcamentos.find(o => o.numero === orcamentoNumero);
-  if (!orc) { alert("Orçamento não encontrado!"); return; }
-
-  const numeroPedido = sistema.contadorPedido++;
-  const pedido = {
-    numero: numeroPedido,
-    vinculadoOrcamento: orc.numero,
-    cliente: orc.cliente,
-    itens: [...orc.itens],
-    status: "Em produção",
-    data: new Date().toLocaleDateString()
-  };
-
-  sistema.pedidos.push(pedido);
-  atualizarListaPedidos();
-  atualizarDashboard();
-  alert(`Pedido Nº ${pedido.numero} gerado a partir do Orçamento Nº ${orc.numero}`);
-}
-
-// Atualizar lista de pedidos
-function atualizarListaPedidos() {
-  const div = document.getElementById("listaPedidos");
-  div.innerHTML = "";
-  sistema.pedidos.forEach((pedido) => {
-    div.innerHTML += `<div>
-      Pedido Nº ${pedido.numero} (vinculado ao Orçamento Nº ${pedido.vinculadoOrcamento}) - ${pedido.cliente.nome} | Status: ${pedido.status} | Data: ${pedido.data}
-    </div>`;
-  });
-}
-
-// ================================
-// Dashboard simples
-// ================================
 
 function atualizarDashboard() {
   document.getElementById("totalOrcamentos").textContent = sistema.orcamentos.length;
@@ -245,41 +185,40 @@ function atualizarDashboard() {
   document.getElementById("totalPedidos").textContent = sistema.pedidos.length;
 }
 
-// ================================
-// Gerar PDF A4
-// ================================
-
+// PDF - Ajustado para usar a nova data
 document.getElementById("gerarPDF")?.addEventListener("click", () => {
-  if (sistema.carrinho.length === 0) { alert("Adicione pelo menos um item antes de gerar o PDF!"); return; }
+  if (sistema.carrinho.length === 0) {
+    alert("Adicione itens ao carrinho primeiro!");
+    return;
+  }
 
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p','mm','a4');
-  let y = 20;
+  const doc = new jsPDF();
+  const dataRef = atualizarDataAutomatica();
 
-  // Cabeçalho
-  doc.setFontSize(16);
-  doc.text("Orçamento - Prestige Comunicação Visual", 105, y, { align: "center" });
-  y += 10;
-  const dataAtual = new Date().toLocaleDateString();
+  doc.setFontSize(18);
+  doc.text("PRESTIGE COMUNICAÇÃO VISUAL", 10, 20);
   doc.setFontSize(12);
-  doc.text(`Data: ${dataAtual}`, 10, y);
-  y += 10;
+  doc.text(`Ref. Orçamento: ${dataRef}`, 10, 30);
+  doc.text(`Cliente: ${document.getElementById("clienteNome").value}`, 10, 40);
 
-  // Tabela de itens
-  doc.text("Produto",10,y); doc.text("Qtd",90,y); doc.text("Área m²",120,y); doc.text("Total R$",160,y);
-  y += 7;
+  let y = 60;
+  doc.text("Item", 10, y);
+  doc.text("Qtd", 100, y);
+  doc.text("Total", 160, y);
+  
+  doc.line(10, y+2, 200, y+2);
+  y += 10;
 
   sistema.carrinho.forEach(item => {
-    const area = ((item.largura*item.altura)/10000).toFixed(2);
-    doc.text(item.produto,10,y); doc.text(item.quantidade.toString(),90,y);
-    doc.text(area,120,y); doc.text(item.total.toFixed(2),160,y);
-    y += 7;
+    doc.text(item.nome, 10, y);
+    doc.text(item.quantidade.toString(), 100, y);
+    doc.text(`R$ ${item.total.toFixed(2)}`, 160, y);
+    y += 8;
   });
 
-  const totais = calcularTotais();
-  y += 10; doc.text(`Frete: R$ ${totais.frete.toFixed(2)}`,10,y); y+=7;
-  doc.text(`Desconto: R$ ${totais.desconto.toFixed(2)}`,10,y); y+=7;
-  doc.setFontSize(14); doc.text(`Total Geral: R$ ${totais.totalGeral.toFixed(2)}`,10,y);
+  y += 10;
+  doc.text(`Total Geral: R$ ${document.getElementById("totalGeral").textContent}`, 10, y);
 
-  doc.save(`Orcamento_${Date.now()}.pdf`);
+  doc.save(`Orcamento_Prestige_${dataRef.replace(/\//g, '-')}.pdf`);
 });
