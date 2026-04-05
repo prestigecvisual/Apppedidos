@@ -96,6 +96,23 @@ function atualizarListaOrcamentos() {
         console.warn("Aviso: O elemento 'listaOrcamentos' não existe no HTML.");
         return; 
     }
+    
+function enviarWhatsApp() {
+    let msg = "🧾 *Orçamento Prestige Comunicação Visual*\n\n";
+
+    msg += `👤 Cliente: ${document.getElementById("clienteNome").value}\n\n`;
+
+    sistema.carrinho.forEach(i => {
+        msg += `• ${i.nome} (${i.medida}) x${i.qtd} = R$ ${i.total.toFixed(2)}\n`;
+    });
+
+    msg += `\n💰 Total: R$ ${document.getElementById("totalGeral").textContent}`;
+
+    const numero = "5511922018290"; // seu número
+    const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
+
+    window.open(url, "_blank");
+}
 
     div.innerHTML = "<strong>Histórico:</strong><br>";
     
