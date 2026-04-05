@@ -3,54 +3,49 @@
 // ========================================================
 
 const sistema = {
-  // Tabela de Preços com diferenciação de cálculo
+  // Lista oficial de produtos (sempre priorizada ao iniciar)
   produtos: [
-    { id: 1, nome: "Adesivo Simples", preco: 10.00, tipo: "m2" },
-    { id: 2, nome: "Adesivo Premium", preco: 15.00, tipo: "m2" },
-    { id: 3, nome: "Placa PVC 2mm", preco: 20.00, tipo: "m2" },
-    { id: 4, nome: "Acrílico 3mm", preco: 30.00, tipo: "m2" },
-    { id: 5, nome: "Lona 440g", preco: 45.00, tipo: "m2" },
-    { id: 6, nome: "Banner c/ Bastão", preco: 55.00, tipo: "unid" },
-    { id: 7, nome: "Cavalete Madeira", preco: 120.00, tipo: "unid" }
+    { nome: "Adesivo Simples", preco: 10.00, tipo: "m2" },
+    { nome: "Adesivo Premium", preco: 15.00, tipo: "m2" },
+    { nome: "Placa PVC 2mm", preco: 20.00, tipo: "m2" },
+    { nome: "Acrílico 3mm", preco: 30.00, tipo: "m2" },
+    { nome: "Lona 440g", preco: 45.00, tipo: "m2" },
+    { nome: "Banner c/ Bastão", preco: 55.00, tipo: "unid" },
+    { nome: "Cavalete Madeira", preco: 120.00, tipo: "unid" }
   ],
-  
-  // Listas de Armazenamento
+  clientes: [],
   carrinho: [],
   orcamentos: [],
   pedidos: [],
-  
-  // Contadores de Sequência
-  contadorOrcamento: 1,
-  contadorPedido: 1
+  contadorOrcamento: 1
 };
 
 // ========================================================
-// FUNÇÕES DE PERSISTÊNCIA (PARA NÃO PERDER OS DADOS AO DAR F5)
+// FUNÇÕES DE PERSISTÊNCIA (localStorage)
 // ========================================================
 
-// 1. Salvar tudo o que está no objeto 'sistema' para o navegador
+// Salva o estado atual do sistema no navegador
 function salvarNoNavegador() {
-  const dadosParaSalvar = JSON.stringify(sistema);
-  localStorage.setItem('PrestigeAppData', dadosParaSalvar);
+  localStorage.setItem('PrestigeData', JSON.stringify(sistema));
 }
 
-// 2. Carregar os dados ao abrir o site
+// Carrega os dados salvos anteriormente
 function carregarDoNavegador() {
-  const dadosSalvos = localStorage.getItem('PrestigeAppData');
-  if (dadosSalvos) {
-    const dadosConvertidos = JSON.parse(dadosSalvos);
+  const salvos = localStorage.getItem('PrestigeData');
+  if (salvos) {
+    const dados = JSON.parse(salvos);
     
-    // Atualiza as listas mantendo a estrutura original
-    sistema.carrinho = dadosConvertidos.carrinho || [];
-    sistema.orcamentos = dadosConvertidos.orcamentos || [];
-    sistema.pedidos = dadosConvertidos.pedidos || [];
-    sistema.contadorOrcamento = dadosConvertidos.contadorOrcamento || 1;
-    sistema.contadorPedido = dadosConvertidos.contadorPedido || 1;
+    // Atualizamos as listas dinâmicas, mas mantemos os produtos do código
+    sistema.clientes = dados.clientes || [];
+    sistema.orcamentos = dados.orcamentos || [];
+    sistema.pedidos = dados.pedidos || [];
+    sistema.contadorOrcamento = dados.contadorOrcamento || 1;
     
-    // Opcional: Se quiser que os produtos novos também sejam salvos
-    // sistema.produtos = dadosConvertidos.produtos; 
+    // Nota: O carrinho geralmente é limpo ao fechar a página, 
+    // mas se quiser manter os itens pendentes, descomente a linha abaixo:
+    // sistema.carrinho = dados.carrinho || [];
   }
 }
 
-// Executa o carregamento assim que o script for lido
+// Inicializa o carregamento
 carregarDoNavegador();
