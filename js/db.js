@@ -3,7 +3,7 @@
 // ========================================================
 
 const sistema = {
-  // Lista oficial de produtos (sempre priorizada ao iniciar)
+  // Produtos padrão (caso o banco esteja vazio)
   produtos: [
     { nome: "Adesivo Simples", preco: 10.00, tipo: "m2" },
     { nome: "Adesivo Premium", preco: 15.00, tipo: "m2" },
@@ -24,28 +24,30 @@ const sistema = {
 // FUNÇÕES DE PERSISTÊNCIA (localStorage)
 // ========================================================
 
-// Salva o estado atual do sistema no navegador
 function salvarNoNavegador() {
   localStorage.setItem('PrestigeData', JSON.stringify(sistema));
 }
 
-// Carrega os dados salvos anteriormente
 function carregarDoNavegador() {
   const salvos = localStorage.getItem('PrestigeData');
   if (salvos) {
     const dados = JSON.parse(salvos);
     
-    // Atualizamos as listas dinâmicas, mas mantemos os produtos do código
+    // MELHORIA: Se houver produtos salvos no navegador, use-os 
+    // Isso permite que novos produtos cadastrados persistam
+    if (dados.produtos && dados.produtos.length > 0) {
+        sistema.produtos = dados.produtos;
+    }
+
     sistema.clientes = dados.clientes || [];
     sistema.orcamentos = dados.orcamentos || [];
     sistema.pedidos = dados.pedidos || [];
     sistema.contadorOrcamento = dados.contadorOrcamento || 1;
     
-    // Nota: O carrinho geralmente é limpo ao fechar a página, 
-    // mas se quiser manter os itens pendentes, descomente a linha abaixo:
+    // Opcional: manter carrinho após F5
     // sistema.carrinho = dados.carrinho || [];
   }
 }
 
-// Inicializa o carregamento
+// Inicializa o carregamento imediatamente
 carregarDoNavegador();
