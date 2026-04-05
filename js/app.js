@@ -180,7 +180,6 @@ function atualizarListaOrcamentos() {
         `;
     });
 }
-}
 
 function atualizarListaPedidos() {
 
