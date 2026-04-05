@@ -4,6 +4,7 @@ window.onload = () => {
     atualizarListaOrcamentos();
     atualizarListaPedidos(); // NOVO
     calcularTotais();
+    atualizarListaPedidos();
 };
 
 // GERADOR DE NÚMERO DE PEDIDO (MMDDYY + SEQUÊNCIA)
