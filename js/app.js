@@ -1,10 +1,9 @@
-window.onload = () => {
+window.onload = () => { 
     popularProdutos();
     atualizarDataRef();
     atualizarListaOrcamentos();
-    atualizarListaPedidos(); // NOVO
-    calcularTotais();
     atualizarListaPedidos();
+    calcularTotais();
 };
 
 // GERADOR DE NÚMERO DE PEDIDO (MMDDYY + SEQUÊNCIA)
@@ -16,7 +15,7 @@ function gerarNumeroPedido() {
 
     const base = `${mm}${dd}${yy}`;
 
-    const pedidosHoje = sistema.pedidos.filter(p => p.numero?.startsWith(base));
+    const pedidosHoje = (sistema.pedidos || []).filter(p => p.numero?.startsWith(base));
     const seq = String(pedidosHoje.length + 1).padStart(3, '0');
 
     return base + seq;
@@ -75,6 +74,8 @@ function adicionarItem() {
 
 function atualizarCarrinho() {
     const l = document.getElementById("listaItens");
+    if (!l) return;
+
     l.innerHTML = "";
 
     sistema.carrinho.forEach((i, index) => {
@@ -98,10 +99,13 @@ function calcularTotais() {
 
     sistema.carrinho.forEach(i => sub += i.total);
 
-    const cep = document.getElementById("clienteCEP").value.replace(/\D/g, "");
+    const cepInput = document.getElementById("clienteCEP");
+    const cep = cepInput ? cepInput.value.replace(/\D/g, "") : "";
+
     let f = (cep.length === 8) ? (cep.startsWith("0") ? 15 : 40) : 0;
 
-    const pg = document.getElementById("formaPagamento").value;
+    const pgSelect = document.getElementById("formaPagamento");
+    const pg = pgSelect ? pgSelect.value : "pix";
 
     let tx =
         (pg === "pix") ? -(sub * 0.05) :
@@ -140,7 +144,6 @@ function salvarOrcamento() {
 function aprovarOrcamento(index) {
     const orc = sistema.orcamentos[index];
 
-    // 🚨 BLOQUEIO: já aprovado?
     if (orc.status === "Aprovado") {
         alert("Esse orçamento já foi aprovado!");
         return;
@@ -155,7 +158,6 @@ function aprovarOrcamento(index) {
         dataAprovacao: new Date().toLocaleDateString()
     });
 
-    // marca como aprovado
     orc.status = "Aprovado";
 
     salvarNoNavegador();
@@ -190,8 +192,11 @@ function atualizarListaPedidos() {
         "Entregue": document.getElementById("col-entregue")
     };
 
-    // limpar colunas
-    Object.values(colunas).forEach(col => col.innerHTML = "");
+    Object.values(colunas).forEach(col => {
+        if (col) col.innerHTML = "";
+    });
+
+    if (!sistema.pedidos || sistema.pedidos.length === 0) return;
 
     sistema.pedidos.forEach((p, index) => {
 
@@ -205,13 +210,16 @@ function atualizarListaPedidos() {
             <b>#${p.numero}</b><br>
             ${p.cliente}<br>
             R$ ${p.total}<br>
-            <small>${p.status}</small><br><br>
+            <small>${p.status}</small><br>
+            <small>📅 ${p.dataAprovacao}</small><br><br>
 
             ${p.status !== "Produção" ? `<button onclick="mudarStatus(${index}, 'Produção')">⬅</button>` : ""}
             ${p.status !== "Entregue" ? `<button onclick="mudarStatus(${index}, proximoStatus('${p.status}'))">➡</button>` : ""}
         `;
 
-        colunas[p.status]?.appendChild(card);
+        if (colunas[p.status]) {
+            colunas[p.status].appendChild(card);
+        }
     });
 }
 
