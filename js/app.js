@@ -90,10 +90,21 @@ function salvarOrcamento() {
 
 function atualizarListaOrcamentos() {
     const div = document.getElementById("listaOrcamentos");
+    
+    // Se o elemento NÃO existir no HTML, ele para aqui e não dá erro no console
+    if (!div) return; 
+
     div.innerHTML = "<strong>Histórico:</strong><br>";
-    sistema.orcamentos.slice(-3).reverse().forEach(o => {
-        div.innerHTML += `${o.cliente} - R$ ${o.total}<br>`;
-    });
+    
+    // Verifica se há orçamentos salvos no banco (db.js)
+    if (sistema.orcamentos && sistema.orcamentos.length > 0) {
+        // Pega os últimos 3 e mostra na tela
+        sistema.orcamentos.slice(-3).reverse().forEach(o => {
+            div.innerHTML += `${o.cliente || 'Consumidor'} - R$ ${o.total}<br>`;
+        });
+    } else {
+        div.innerHTML += "Nenhum orçamento recente.";
+    }
 }
 
 // PDF COM LOGO CENTRALIZADA E ENDEREÇO PRESTIGE
