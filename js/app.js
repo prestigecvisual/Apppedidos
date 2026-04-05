@@ -47,6 +47,30 @@ function atualizarListaItens() {
   });
 }
 
+function adicionarProdutoPersonalizado() {
+  const nome = document.getElementById("novoProdutoNome").value.trim();
+  const preco = parseFloat(document.getElementById("novoProdutoPreco").value);
+
+  if (!nome || !preco || preco <= 0) {
+    alert("Preencha corretamente o nome e preço do produto!");
+    return;
+  }
+
+  const novoProduto = { nome, preco };
+  sistema.produtos.push(novoProduto);
+
+  const select = document.getElementById("produto");
+  const option = document.createElement("option");
+  option.value = sistema.produtos.length - 1;
+  option.textContent = `${novoProduto.nome} - R$ ${novoProduto.preco}`;
+  select.appendChild(option);
+
+  document.getElementById("novoProdutoNome").value = "";
+  document.getElementById("novoProdutoPreco").value = "";
+
+  alert(`Produto "${nome}" adicionado! Agora você pode selecioná-lo no orçamento.`);
+}
+
 function salvarOrcamento() {
   const nome = document.getElementById("clienteNome").value;
   const contato = document.getElementById("clienteContato").value;
@@ -77,7 +101,7 @@ function salvarOrcamento() {
   let resumo = `Orçamento Nº ${orcamento.numero} - Prestige Comunicação Visual\n\nCliente: ${nome}\nContato: ${contato}\nTelefone: ${telefone}\nEndereço: ${endereco}\n\n`;
 
   let totalGeral = 0;
-  orcamento.itens.forEach((item, i) => {
+  orcamento.itens.forEach((item) => {
     resumo += `${item.produto} - ${item.largura}x${item.altura} cm | Qtd: ${item.quantidade} | R$ ${item.total.toFixed(2)}\n`;
     totalGeral += item.total;
   });
@@ -98,10 +122,11 @@ function salvarOrcamento() {
   document.getElementById("clienteEndereco").value = "";
 
   atualizarListaOrcamentos();
+  atualizarListaPedidos();
+
   alert(`Orçamento Nº ${orcamento.numero} enviado! Status: Aguardando aprovação`);
 }
 
-// Criar pedido a partir do orçamento
 function gerarPedido(orcamentoNumero) {
   const orc = sistema.orcamentos.find(o => o.numero === orcamentoNumero);
   if (!orc) {
@@ -127,7 +152,7 @@ function gerarPedido(orcamentoNumero) {
 function atualizarListaOrcamentos() {
   const div = document.getElementById("listaOrcamentos");
   div.innerHTML = "";
-  sistema.orcamentos.forEach((orc, index) => {
+  sistema.orcamentos.forEach((orc) => {
     div.innerHTML += `<div>
       Orçamento Nº ${orc.numero} - ${orc.cliente.nome} | Status: ${orc.status} | Data: ${orc.data} 
       <button onclick="gerarPedido(${orc.numero})">Gerar Pedido</button>
@@ -137,9 +162,8 @@ function atualizarListaOrcamentos() {
 
 function atualizarListaPedidos() {
   const div = document.getElementById("listaPedidos");
-  if (!div) return; // caso não exista a seção de pedidos
   div.innerHTML = "";
-  sistema.pedidos.forEach((pedido, index) => {
+  sistema.pedidos.forEach((pedido) => {
     div.innerHTML += `<div>Pedido Nº ${pedido.numero} (vinculado ao Orçamento Nº ${pedido.vinculadoOrcamento}) - ${pedido.cliente.nome} | Status: ${pedido.status} | Data: ${pedido.data}</div>`;
   });
 }
