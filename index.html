@@ -2,97 +2,168 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Prestige Comunicação Visual - App Pedidos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prestige Comunicação Visual - Sistema de Pedidos</title>
+  
   <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  
   <script src="js/db.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="js/app.js" defer></script>
 </head>
 <body>
-  <!-- Topo com logo e endereço -->
-  <header>
-    <img src="img/logo.png" alt="Logo" style="height:60px;">
-    <div>
-      Rua Brasil, 304 - CEP: 09627-000 - São Bernardo do Campo - SP<br>
-      <h1>Prestige Comunicação Visual - App Pedidos</h1>
-      <span>Orçamento Nº: <span id="numeroOrcamento">0</span></span>
+
+  <header class="main-header">
+    <div class="header-container">
+      <img src="img/logo.png" alt="Prestige Logo" class="logo-img">
+      <div class="header-info">
+        <h1>Prestige Comunicação Visual</h1>
+        <p>Rua Brasil, 304 - São Bernardo do Campo - SP</p>
+      </div>
+      <div class="orcamento-badge">
+        <span>Orçamento Nº</span>
+        <strong id="numeroOrcamento">0</strong>
+      </div>
     </div>
   </header>
 
-  <!-- Informações do Cliente -->
-  <section id="cliente">
-    <h2>Informações do Cliente</h2>
-    <label>Nome:</label>
-    <input type="text" id="clienteNome"><br>
-    <label>Contato:</label>
-    <input type="text" id="clienteContato"><br>
-    <label>Telefone:</label>
-    <input type="text" id="clienteTelefone"><br>
-    <label>Endereço:</label>
-    <input type="text" id="clienteEndereco"><br>
-    <label>CEP:</label>
-    <input type="text" id="clienteCEP"><br>
-  </section>
+  <main class="container">
+    
+    <section id="dashboard" class="dashboard-grid">
+      <div class="db-card">
+        <span class="db-title">Orçamentos</span>
+        <span class="db-value" id="totalOrcamentos">0</span>
+      </div>
+      <div class="db-card approved">
+        <span class="db-title">Aprovados</span>
+        <span class="db-value" id="totalAprovados">0</span>
+      </div>
+      <div class="db-card orders">
+        <span class="db-title">Pedidos</span>
+        <span class="db-value" id="totalPedidos">0</span>
+      </div>
+    </section>
 
-  <!-- Produtos -->
-  <section id="produtos">
-    <h2>Produto</h2>
-    <select id="produto"></select><br>
-    <label>Largura (cm):</label>
-    <input type="number" id="largura" min="1"><br>
-    <label>Altura (cm):</label>
-    <input type="number" id="altura" min="1"><br>
-    <label>Quantidade:</label>
-    <input type="number" id="quantidade" min="1" value="1"><br>
-    <button onclick="adicionarItem()">Adicionar ao Carrinho</button>
-    <div id="resultado"></div>
-  </section>
+    <div class="content-layout">
+      
+      <div class="form-column">
+        
+        <section id="cliente" class="card">
+          <div class="card-header">
+            <h2>Dados do Cliente</h2>
+          </div>
+          <div class="grid-form">
+            <div class="input-group full">
+              <label>Nome / Empresa</label>
+              <input type="text" id="clienteNome" placeholder="Nome completo">
+            </div>
+            <div class="input-group">
+              <label>Contato (Pessoa)</label>
+              <input type="text" id="clienteContato" placeholder="Ex: João">
+            </div>
+            <div class="input-group">
+              <label>Telefone / WhatsApp</label>
+              <input type="text" id="clienteTelefone" placeholder="(11) 99999-9999">
+            </div>
+            <div class="input-group">
+              <label>CEP</label>
+              <input type="text" id="clienteCEP" placeholder="00000-000">
+            </div>
+            <div class="input-group full">
+              <label>Endereço de Entrega</label>
+              <input type="text" id="clienteEndereco" placeholder="Rua, número, bairro">
+            </div>
+          </div>
+        </section>
 
-  <!-- Carrinho -->
-  <section id="carrinho">
-    <h2>Carrinho</h2>
-    <div id="listaItens"></div>
-    <div>
-      <strong>Frete:</strong> R$ <span id="frete">0.00</span><br>
-      <strong>Desconto:</strong> R$ <span id="desconto">0.00</span><br>
-      <strong>Total Geral:</strong> R$ <span id="totalGeral">0.00</span>
+        <section id="produtos" class="card highlight">
+          <div class="card-header">
+            <h2>Calculadora de Produção</h2>
+          </div>
+          <div class="grid-form">
+            <div class="input-group full">
+              <label>Material (Lona, Acrílico, Adesivo...)</label>
+              <select id="produto"></select>
+            </div>
+            <div class="input-group">
+              <label>Largura (cm)</label>
+              <input type="number" id="largura" min="1" value="100">
+            </div>
+            <div class="input-group">
+              <label>Altura (cm)</label>
+              <input type="number" id="altura" min="1" value="100">
+            </div>
+            <div class="input-group">
+              <label>Quantidade</label>
+              <input type="number" id="quantidade" min="1" value="1">
+            </div>
+            <div class="input-group full btn-area">
+              <button class="btn-add" onclick="adicionarItem()">+ Adicionar ao Carrinho</button>
+            </div>
+          </div>
+          <div id="resultado" class="feedback-area"></div>
+        </section>
+
+        <section id="produtoPersonalizado" class="card">
+          <div class="card-header">
+            <h3>Item Extra / Serviço Adicional</h3>
+          </div>
+          <div class="grid-form row">
+            <input type="text" id="novoProdutoNome" placeholder="Nome do serviço">
+            <input type="number" id="novoProdutoPreco" placeholder="R$ Preço" min="0">
+            <button class="btn-secundary" onclick="adicionarProdutoPersonalizado()">Adicionar</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="cart-column">
+        
+        <section id="carrinho" class="card cart-card">
+          <div class="card-header">
+            <h2>Resumo do Pedido</h2>
+          </div>
+          <div id="listaItens" class="item-list">
+            </div>
+          
+          <div class="cart-totals">
+            <div class="total-row">
+              <span>Frete:</span>
+              <span>R$ <span id="frete">0.00</span></span>
+            </div>
+            <div class="total-row">
+              <span>Desconto:</span>
+              <span class="discount-val">- R$ <span id="desconto">0.00</span></span>
+            </div>
+            <hr>
+            <div class="total-row grand-total">
+              <span>Total Geral:</span>
+              <span>R$ <span id="totalGeral">0.00</span></span>
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <button class="btn-save" onclick="salvarOrcamento()">💾 Salvar Orçamento</button>
+            <button id="gerarPDF" class="btn-pdf">📄 Gerar PDF Profissional</button>
+          </div>
+        </section>
+
+      </div>
     </div>
-  </section>
 
-  <!-- Produto Personalizado -->
-  <section id="produtoPersonalizado">
-    <h2>Adicionar Produto Personalizado</h2>
-    <label>Nome:</label>
-    <input type="text" id="novoProdutoNome">
-    <label>Preço:</label>
-    <input type="number" id="novoProdutoPreco" min="0">
-    <button onclick="adicionarProdutoPersonalizado()">Adicionar Produto</button>
-  </section>
+    <div class="history-layout">
+      <section id="orcamentos" class="card">
+        <h2>Histórico de Orçamentos</h2>
+        <div id="listaOrcamentos" class="history-list"></div>
+      </section>
 
-  <!-- Botões -->
-  <section id="botoes">
-    <button onclick="salvarOrcamento()">Salvar Orçamento</button>
-    <button id="gerarPDF">Gerar PDF</button>
-  </section>
+      <section id="pedidos" class="card">
+        <h2>Pedidos em Produção</h2>
+        <div id="listaPedidos" class="history-list"></div>
+      </section>
+    </div>
 
-  <!-- Orçamentos -->
-  <section id="orcamentos">
-    <h2>Orçamentos</h2>
-    <div id="listaOrcamentos"></div>
-  </section>
+  </main>
 
-  <!-- Pedidos -->
-  <section id="pedidos">
-    <h2>Pedidos</h2>
-    <div id="listaPedidos"></div>
-  </section>
-
-  <!-- Dashboard -->
-  <section id="dashboard">
-    <h2>Dashboard</h2>
-    <div class="dashboard-box">Orçamentos totais: <span id="totalOrcamentos">0</span></div>
-    <div class="dashboard-box">Orçamentos aprovados: <span id="totalAprovados">0</span></div>
-    <div class="dashboard-box">Pedidos: <span id="totalPedidos">0</span></div>
-  </section>
 </body>
 </html>
