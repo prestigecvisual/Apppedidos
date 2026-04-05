@@ -5,5 +5,7 @@ const sistema = {
     { nome: "Placa PVC", preco: 20 },
     { nome: "Acrílico", preco: 30 }
   ],
-  carrinho: []
+  clientes: [],
+  carrinho: [],
+  orcamentos: []
 };
