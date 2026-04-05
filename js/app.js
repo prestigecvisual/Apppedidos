@@ -1,224 +1,230 @@
 // ================================
-// App Pedidos - app.js (Corrigido)
+// App Pedidos - Prestige (Final)
 // ================================
 
-// Inicialização ao carregar a página
 window.onload = function () {
-  popularProdutos();
-  atualizarListaOrcamentos();
-  atualizarListaPedidos();
-  atualizarDashboard();
-  atualizarDataAutomatica(); // Nova função para o formato AA/DD/HH+1
-  calcularTotais(); 
+    carregarDoNavegador(); // Função do db.js para recuperar dados salvos
+    popularProdutos();
+    atualizarListaOrcamentos();
+    atualizarDashboard();
+    atualizarDataAutomatica(); 
+    calcularTotais(); 
 };
 
-// ================================
-// Funções de Utilidade e Data
-// ================================
-
+// --- DATA AUTOMÁTICA AA/DD/HH+1 ---
 function atualizarDataAutomatica() {
-  const agora = new Date();
-  agora.setHours(agora.getHours() + 1); // Soma 1 hora
+    const agora = new Date();
+    agora.setHours(agora.getHours() + 1); 
 
-  const aa = agora.getFullYear().toString().slice(-2);
-  const dd = String(agora.getDate()).padStart(2, '0');
-  const hh = String(agora.getHours()).padStart(2, '0');
-  const mm = String(agora.getMinutes()).padStart(2, '0');
+    const aa = agora.getFullYear().toString().slice(-2);
+    const dd = String(agora.getDate()).padStart(2, '0');
+    const hh = String(agora.getHours()).padStart(2, '0');
+    const mm = String(agora.getMinutes()).padStart(2, '0');
 
-  const formatoFinal = `${aa}/${dd}/${hh}:${mm}`;
-  
-  // Atualiza no HTML (se o elemento existir)
-  const elNumero = document.getElementById("numeroOrcamento");
-  if (elNumero) {
-    // Usamos o formato como parte do "ID" do orçamento ou apenas exibição
-    elNumero.textContent = `${sistema.contadorOrcamento} (${formatoFinal})`;
-  }
-  return formatoFinal;
+    const formatoFinal = `${aa}/${dd}/${hh}:${mm}`;
+    const elNumero = document.getElementById("numeroOrcamento");
+    if (elNumero) elNumero.textContent = formatoFinal;
+    
+    return formatoFinal;
 }
 
-// ================================
-// Funções de Produtos e Cálculos
-// ================================
-
+// --- POPULAR PRODUTOS (Respeitando tipo m2 ou unid) ---
 function popularProdutos() {
-  const select = document.getElementById("produto");
-  if (!select) return;
-  select.innerHTML = "";
-  sistema.produtos.forEach((prod, index) => {
-    const option = document.createElement("option");
-    option.value = index;
-    option.textContent = `${prod.nome} - R$ ${prod.preco.toFixed(2)}/m²`;
-    select.appendChild(option);
-  });
+    const select = document.getElementById("produto");
+    if (!select) return;
+    select.innerHTML = "";
+    sistema.produtos.forEach((prod, index) => {
+        const option = document.createElement("option");
+        option.value = index;
+        const sufixo = prod.tipo === "m2" ? "/m²" : "/unid";
+        option.textContent = `${prod.nome} - R$ ${prod.preco.toFixed(2)}${sufixo}`;
+        select.appendChild(option);
+    });
 }
 
+// --- CÁLCULO DINÂMICO ---
 function calcular() {
-  const produtoIndex = document.getElementById("produto").value;
-  const largura = parseFloat(document.getElementById("largura").value);
-  const altura = parseFloat(document.getElementById("altura").value);
-  const quantidade = parseInt(document.getElementById("quantidade").value);
+    const produtoIndex = document.getElementById("produto").value;
+    const largura = parseFloat(document.getElementById("largura").value);
+    const altura = parseFloat(document.getElementById("altura").value);
+    const quantidade = parseInt(document.getElementById("quantidade").value);
 
-  if (produtoIndex === "" || isNaN(largura) || isNaN(altura) || isNaN(quantidade)) {
-    alert("Preencha largura, altura e quantidade!");
-    return null;
-  }
+    if (produtoIndex === "" || isNaN(quantidade)) {
+        alert("Preencha ao menos a quantidade!");
+        return null;
+    }
 
-  const produto = sistema.produtos[produtoIndex];
-  // Cálculo de área em m² (cm * cm / 10000)
-  const areaM2 = (largura * altura) / 10000;
-  // Preço unitário = Preço do m² * Área
-  const precoUnitario = produto.preco * areaM2;
-  const totalItem = precoUnitario * quantidade;
+    const produto = sistema.produtos[produtoIndex];
+    let totalItem = 0;
+    let infoMedida = "";
 
-  document.getElementById("resultado").innerHTML = `
-    <strong>${produto.nome}</strong><br>
-    Área: ${areaM2.toFixed(2)} m² | Unitário: R$ ${precoUnitario.toFixed(2)}<br>
-    <strong>Subtotal: R$ ${totalItem.toFixed(2)}</strong>
-  `;
+    if (produto.tipo === "m2") {
+        if (isNaN(largura) || isNaN(altura)) {
+            alert("Para este produto, largura e altura são obrigatórios!");
+            return null;
+        }
+        const areaM2 = (largura * altura) / 10000;
+        totalItem = produto.preco * areaM2 * quantidade;
+        infoMedida = `${largura}x${altura}cm (${areaM2.toFixed(2)}m²)`;
+    } else {
+        totalItem = produto.preco * quantidade;
+        infoMedida = "Unidade";
+    }
 
-  return { 
-    nome: produto.nome, 
-    largura, 
-    altura, 
-    quantidade, 
-    area: areaM2, 
-    total: totalItem 
-  };
+    document.getElementById("resultado").innerHTML = `
+        <strong>${produto.nome}</strong><br>
+        Detalhe: ${infoMedida}<br>
+        <strong>Subtotal: R$ ${totalItem.toFixed(2)}</strong>
+    `;
+
+    return { 
+        nome: produto.nome, 
+        largura: largura || 0, 
+        altura: altura || 0, 
+        quantidade, 
+        total: totalItem 
+    };
 }
 
 function adicionarItem() {
-  const dados = calcular();
-  if (!dados) return;
-  sistema.carrinho.push(dados);
-  atualizarListaItens();
-  calcularTotais();
+    const dados = calcular();
+    if (!dados) return;
+    sistema.carrinho.push(dados);
+    salvarNoNavegador(); // Salva no localStorage (db.js)
+    atualizarListaItens();
+    calcularTotais();
 }
 
 function atualizarListaItens() {
-  const lista = document.getElementById("listaItens");
-  lista.innerHTML = "";
-  sistema.carrinho.forEach((item, index) => {
-    lista.innerHTML += `
-      <div class="item-carrinho">
-        ${item.nome} (${item.largura}x${item.altura}cm) x${item.quantidade} 
-        <strong>R$ ${item.total.toFixed(2)}</strong>
-      </div>`;
-  });
+    const lista = document.getElementById("listaItens");
+    if (!lista) return;
+    lista.innerHTML = "";
+    sistema.carrinho.forEach((item, index) => {
+        lista.innerHTML += `
+            <div class="item-carrinho">
+                ${item.nome} (${item.quantidade}x) - <strong>R$ ${item.total.toFixed(2)}</strong>
+                <button onclick="removerItem(${index})" style="color:red; background:none; border:none; cursor:pointer"> [X]</button>
+            </div>`;
+    });
 }
 
-// ================================
-// Totais e Frete
-// ================================
+function removerItem(index) {
+    sistema.carrinho.splice(index, 1);
+    salvarNoNavegador();
+    atualizarListaItens();
+    calcularTotais();
+}
 
+// --- TOTAIS COM REGRAS DE PAGAMENTO ---
 function calcularTotais() {
-  let totalProdutos = 0;
-  sistema.carrinho.forEach(item => totalProdutos += item.total);
+    let totalProdutos = 0;
+    sistema.carrinho.forEach(item => totalProdutos += item.total);
 
-  const cep = document.getElementById("clienteCEP")?.value.replace(/\D/g, "") || "";
-  let frete = 0;
+    // Frete por CEP
+    const cep = document.getElementById("clienteCEP")?.value.replace(/\D/g, "") || "";
+    let frete = 0;
+    if (cep.length === 8) {
+        frete = cep.startsWith("0") ? 15.00 : 40.00;
+    }
 
-  // Lógica Simples de Frete
-  if (cep.length === 8) {
-    if (cep.startsWith("0")) frete = 15.00; // Grande SP
-    else frete = 40.00; // Outros
-  }
+    // Pagamento e Taxas
+    const pgto = document.getElementById("formaPagamento")?.value || "debito";
+    let taxaOuDesc = 0;
 
-  const desconto = totalProdutos > 500 ? totalProdutos * 0.05 : 0; // 5% acima de 500 reais
-  const totalGeral = totalProdutos + frete - desconto;
+    if (pgto === "pix") taxaOuDesc = -(totalProdutos * 0.05); // -5%
+    else if (pgto === "credito_3x") taxaOuDesc = totalProdutos * 0.06; // +6%
+    else if (pgto === "credito_5x") taxaOuDesc = totalProdutos * 0.07; // +7%
 
-  document.getElementById("frete").textContent = frete.toFixed(2);
-  document.getElementById("desconto").textContent = desconto.toFixed(2);
-  document.getElementById("totalGeral").textContent = totalGeral.toFixed(2);
+    const totalGeral = totalProdutos + frete + taxaOuDesc;
 
-  return { frete, desconto, totalGeral };
+    document.getElementById("frete").textContent = frete.toFixed(2);
+    document.getElementById("desconto").textContent = Math.abs(taxaOuDesc).toFixed(2);
+    
+    // Muda cor se for desconto (verde) ou taxa (vermelho)
+    const elDesc = document.getElementById("desconto");
+    if (elDesc) elDesc.style.color = taxaOuDesc < 0 ? "green" : (taxaOuDesc > 0 ? "red" : "black");
+
+    document.getElementById("totalGeral").textContent = totalGeral.toFixed(2);
+
+    return { frete, taxaOuDesc, totalGeral };
 }
 
-// Ouvinte para o CEP calcular frete automático
+// Ouvintes
 document.getElementById("clienteCEP")?.addEventListener("blur", calcularTotais);
 
-// ================================
-// Gestão de Orçamentos e PDF
-// ================================
-
+// --- GESTÃO E PDF ---
 function salvarOrcamento() {
-  const nome = document.getElementById("clienteNome").value;
-  if (!nome || sistema.carrinho.length === 0) {
-    alert("Nome do cliente e itens no carrinho são obrigatórios!");
-    return;
-  }
+    const nome = document.getElementById("clienteNome").value;
+    if (!nome || sistema.carrinho.length === 0) {
+        alert("Preencha o nome do cliente e adicione itens!");
+        return;
+    }
 
-  const dataHoraId = atualizarDataAutomatica();
-  const orcamento = {
-    numero: sistema.contadorOrcamento++,
-    dataID: dataHoraId,
-    cliente: nome,
-    itens: [...sistema.carrinho],
-    total: parseFloat(document.getElementById("totalGeral").textContent),
-    status: "Pendente"
-  };
+    const orcamento = {
+        numero: sistema.contadorOrcamento++,
+        dataID: atualizarDataAutomatica(),
+        cliente: nome,
+        itens: [...sistema.carrinho],
+        total: parseFloat(document.getElementById("totalGeral").textContent),
+        status: "Pendente"
+    };
 
-  sistema.orcamentos.push(orcamento);
-  sistema.carrinho = []; // Limpa carrinho após salvar
-  
-  atualizarListaItens();
-  atualizarListaOrcamentos();
-  atualizarDashboard();
-  alert("Orçamento salvo com sucesso!");
+    sistema.orcamentos.push(orcamento);
+    sistema.carrinho = []; 
+    salvarNoNavegador(); 
+    
+    atualizarListaItens();
+    atualizarListaOrcamentos();
+    atualizarDashboard();
+    alert("Orçamento salvo!");
 }
 
 function atualizarListaOrcamentos() {
-  const div = document.getElementById("listaOrcamentos");
-  if (!div) return;
-  div.innerHTML = "";
-  sistema.orcamentos.forEach(orc => {
-    div.innerHTML += `
-      <div class="card-historico">
-        ID: ${orc.dataID} | <strong>${orc.cliente}</strong> | R$ ${orc.total.toFixed(2)}
-        <button onclick="aprovarOrcamento(${orc.numero})">Aprovar</button>
-      </div>`;
-  });
+    const div = document.getElementById("listaOrcamentos");
+    if (!div) return;
+    div.innerHTML = "";
+    sistema.orcamentos.slice().reverse().forEach(orc => {
+        div.innerHTML += `
+            <div class="card-historico" style="border-bottom:1px solid #ccc; padding:10px;">
+                <strong>#${orc.numero}</strong> | ${orc.dataID} | ${orc.cliente} | <strong>R$ ${orc.total.toFixed(2)}</strong>
+            </div>`;
+    });
 }
 
 function atualizarDashboard() {
-  document.getElementById("totalOrcamentos").textContent = sistema.orcamentos.length;
-  document.getElementById("totalAprovados").textContent = sistema.orcamentos.filter(o => o.status === "Aprovado").length;
-  document.getElementById("totalPedidos").textContent = sistema.pedidos.length;
+    document.getElementById("totalOrcamentos").textContent = sistema.orcamentos.length;
 }
 
-// PDF - Ajustado para usar a nova data
+// PDF
 document.getElementById("gerarPDF")?.addEventListener("click", () => {
-  if (sistema.carrinho.length === 0) {
-    alert("Adicione itens ao carrinho primeiro!");
-    return;
-  }
+    if (sistema.carrinho.length === 0) return alert("Carrinho vazio!");
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  const dataRef = atualizarDataAutomatica();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const dataRef = atualizarDataAutomatica();
 
-  doc.setFontSize(18);
-  doc.text("PRESTIGE COMUNICAÇÃO VISUAL", 10, 20);
-  doc.setFontSize(12);
-  doc.text(`Ref. Orçamento: ${dataRef}`, 10, 30);
-  doc.text(`Cliente: ${document.getElementById("clienteNome").value}`, 10, 40);
+    doc.setFontSize(18);
+    doc.text("PRESTIGE COMUNICAÇÃO VISUAL", 10, 20);
+    doc.setFontSize(10);
+    doc.text(`Orçamento Ref: ${dataRef}`, 10, 30);
+    doc.text(`Cliente: ${document.getElementById("clienteNome").value}`, 10, 35);
 
-  let y = 60;
-  doc.text("Item", 10, y);
-  doc.text("Qtd", 100, y);
-  doc.text("Total", 160, y);
-  
-  doc.line(10, y+2, 200, y+2);
-  y += 10;
+    let y = 50;
+    doc.text("Item", 10, y);
+    doc.text("Qtd", 140, y);
+    doc.text("Total", 170, y);
+    doc.line(10, y+2, 200, y+2);
+    
+    y += 10;
+    sistema.carrinho.forEach(item => {
+        doc.text(item.nome, 10, y);
+        doc.text(item.quantidade.toString(), 140, y);
+        doc.text(`R$ ${item.total.toFixed(2)}`, 170, y);
+        y += 8;
+    });
 
-  sistema.carrinho.forEach(item => {
-    doc.text(item.nome, 10, y);
-    doc.text(item.quantidade.toString(), 100, y);
-    doc.text(`R$ ${item.total.toFixed(2)}`, 160, y);
-    y += 8;
-  });
-
-  y += 10;
-  doc.text(`Total Geral: R$ ${document.getElementById("totalGeral").textContent}`, 10, y);
-
-  doc.save(`Orcamento_Prestige_${dataRef.replace(/\//g, '-')}.pdf`);
+    y += 10;
+    doc.setFontSize(12);
+    doc.text(`TOTAL FINAL: R$ ${document.getElementById("totalGeral").textContent}`, 10, y);
+    doc.save(`Prestige_${dataRef.replace(/[:/]/g, '-')}.pdf`);
 });
