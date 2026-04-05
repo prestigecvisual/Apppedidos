@@ -1,101 +1,84 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>App Pedidos - Prestige Comunicação Visual</title>
-    <link rel="stylesheet" href="css/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8">
+  <title>App Pedidos - Prestige Comunicação Visual</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/db.js"></script> <!-- Sempre primeiro -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="js/app.js" defer></script>
 </head>
 <body>
-    <header>
-        <img src="img/logo.png" alt="Logo" class="logo">
-        <h1>App Pedidos - Prestige Comunicação Visual</h1>
-    </header>
+  <header>
+    <img src="img/logo.png" alt="Logo" style="height:60px;">
+    <h1>App Pedidos - Prestige Comunicação Visual</h1>
+  </header>
 
-    <main>
-        <!-- Seção de cadastro de produtos -->
-        <section class="produtos">
-            <h2>Adicionar Produto</h2>
-            <select id="produto"></select>
-            <input type="number" id="largura" placeholder="Largura (cm)">
-            <input type="number" id="altura" placeholder="Altura (cm)">
-            <input type="number" id="quantidade" placeholder="Quantidade">
-            <button onclick="adicionarItem()">Adicionar ao carrinho</button>
-            <div id="resultado"></div>
+  <section>
+    <h2>Novo Item</h2>
+    <label>Produto:</label>
+    <select id="produto"></select><br>
+    <label>Largura (cm):</label>
+    <input type="number" id="largura" min="1"><br>
+    <label>Altura (cm):</label>
+    <input type="number" id="altura" min="1"><br>
+    <label>Quantidade:</label>
+    <input type="number" id="quantidade" min="1" value="1"><br>
+    <button onclick="adicionarItem()">Adicionar ao Carrinho</button>
+    <div id="resultado"></div>
+  </section>
 
-            <h3>Produto Personalizado</h3>
-            <input type="text" id="novoProdutoNome" placeholder="Nome do produto">
-            <input type="number" id="novoProdutoPreco" placeholder="Preço unitário">
-            <button onclick="adicionarProdutoPersonalizado()">Adicionar Produto</button>
-        </section>
+  <section>
+    <h2>Carrinho</h2>
+    <div id="listaItens"></div>
+    <div>
+      <strong>Frete:</strong> R$ <span id="frete">0</span><br>
+      <strong>Desconto:</strong> R$ <span id="desconto">0</span><br>
+      <strong>Total Geral:</strong> R$ <span id="totalGeral">0</span>
+    </div>
+  </section>
 
-        <!-- Carrinho -->
-        <section class="carrinho">
-            <h2>Carrinho</h2>
-            <div id="listaItens"></div>
-            <input type="text" id="clienteNome" placeholder="Nome do cliente">
-            <input type="text" id="clienteContato" placeholder="Contato">
-            <input type="text" id="clienteTelefone" placeholder="Telefone">
-            <input type="text" id="clienteEndereco" placeholder="Endereço">
-            <input type="text" id="clienteCEP" placeholder="CEP">
-            <div class="totais">
-                <p>Frete: R$ <span id="frete">0.00</span></p>
-                <p>Desconto: R$ <span id="desconto">0.00</span></p>
-                <p>Total Geral: R$ <span id="totalGeral">0.00</span></p>
-            </div>
-            <button onclick="salvarOrcamento()">Salvar Orçamento</button>
-            <button id="gerarPDF">Gerar PDF</button>
-        </section>
+  <section>
+    <h2>Adicionar Produto Personalizado</h2>
+    <label>Nome:</label>
+    <input type="text" id="novoProdutoNome"><br>
+    <label>Preço:</label>
+    <input type="number" id="novoProdutoPreco" min="0"><br>
+    <button onclick="adicionarProdutoPersonalizado()">Adicionar Produto</button>
+  </section>
 
-        <!-- Dashboard -->
-        <section class="resumo-dashboard">
-            <h2>Resumo Geral</h2>
-            <div class="cards">
-                <div class="card">
-                    <h3>Orçamentos Aguardando Aprovação</h3>
-                    <p id="orcamentosAguardando">0</p>
-                </div>
-                <div class="card">
-                    <h3>Orçamentos Aprovados</h3>
-                    <p id="orcamentosAprovados">0</p>
-                </div>
-                <div class="card">
-                    <h3>Pedidos em Produção</h3>
-                    <p id="pedidosProducao">0</p>
-                </div>
-                <div class="card">
-                    <h3>Pedidos Finalizados</h3>
-                    <p id="pedidosFinalizados">0</p>
-                </div>
-            </div>
-            <canvas id="graficoStatus" width="400" height="200"></canvas>
-        </section>
+  <section>
+    <h2>Cliente</h2>
+    <label>Nome:</label>
+    <input type="text" id="clienteNome"><br>
+    <label>Contato:</label>
+    <input type="text" id="clienteContato"><br>
+    <label>Telefone:</label>
+    <input type="text" id="clienteTelefone"><br>
+    <label>Endereço:</label>
+    <input type="text" id="clienteEndereco"><br>
+    <label>CEP:</label>
+    <input type="text" id="clienteCEP"><br>
+    <button onclick="salvarOrcamento()">Salvar Orçamento</button>
+    <button id="gerarPDF">Gerar PDF</button>
+  </section>
 
-        <!-- Filtros e listas -->
-        <section class="orcamentos-dashboard">
-            <h2>Orçamentos</h2>
-            <label for="filtroOrcamentos">Filtrar status:</label>
-            <select id="filtroOrcamentos">
-                <option value="todos">Todos</option>
-                <option value="Aguardando aprovação">Aguardando aprovação</option>
-                <option value="Aprovado">Aprovado</option>
-            </select>
-            <div id="listaOrcamentos"></div>
-        </section>
+  <section>
+    <h2>Orçamentos</h2>
+    <div id="listaOrcamentos"></div>
+  </section>
 
-        <section class="pedidos-dashboard">
-            <h2>Pedidos</h2>
-            <label for="filtroPedidos">Filtrar status:</label>
-            <select id="filtroPedidos">
-                <option value="todos">Todos</option>
-                <option value="Em produção">Em produção</option>
-                <option value="Finalizado">Finalizado</option>
-            </select>
-            <div id="listaPedidos"></div>
-        </section>
-    </main>
+  <section>
+    <h2>Pedidos</h2>
+    <div id="listaPedidos"></div>
+  </section>
 
-    <script src="js/db.js"></script>
-    <script src="js/app.js"></script>
+  <section>
+    <h2>Dashboard</h2>
+    <div>Orçamentos totais: <span id="totalOrcamentos">0</span></div>
+    <div>Orçamentos aprovados: <span id="totalAprovados">0</span></div>
+    <div>Pedidos: <span id="totalPedidos">0</span></div>
+  </section>
+
 </body>
 </html>
