@@ -2,16 +2,19 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>App Pedidos - Prestige Comunicação Visual</title>
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/app.js" defer></script>
 </head>
 <body>
 
 <header>
   <div class="logo">
-    <img src="img/logo.png" alt="Logo" class="logo-img">
+    <img src="img/logo.png" alt="Logo">
   </div>
   <div class="contato">
     <p>Prestige Comunicação Visual</p>
@@ -29,7 +32,7 @@
   <input type="text" id="clienteContato" placeholder="Contato (email ou rede)">
   <input type="text" id="clienteTelefone" placeholder="Telefone">
   <input type="text" id="clienteCEP" placeholder="CEP" onblur="buscarCEP()">
-  <input type="text" id="clienteEndereco" placeholder="Endereço">
+  <input type="text" id="clienteEndereco" placeholder="Rua">
   <input type="text" id="clienteNumero" placeholder="Número">
   <input type="text" id="clienteBairro" placeholder="Bairro">
   <input type="text" id="clienteCidade" placeholder="Cidade">
@@ -38,11 +41,19 @@
 
 <section class="produto">
   <h3>Produtos Disponíveis</h3>
-  <select id="produto"></select>
-  <input type="number" id="largura" placeholder="Largura (cm)">
-  <input type="number" id="altura" placeholder="Altura (cm)">
-  <input type="number" id="quantidade" placeholder="Quantidade">
-  <br><br>
+  <select id="produto" onchange="calcularProduto()">
+    <option value="">Selecione o produto</option>
+  </select>
+
+  <input type="number" id="largura" placeholder="Largura (cm)" oninput="calcularProduto()">
+  <input type="number" id="altura" placeholder="Altura (cm)" oninput="calcularProduto()">
+  <input type="number" id="quantidade" placeholder="Quantidade" oninput="calcularProduto()">
+  
+  <div>
+    <p>Preço unitário: R$ <span id="precoUnitario">0.00</span></p>
+    <p>Total do item: R$ <span id="totalItem">0.00</span></p>
+  </div>
+  
   <button onclick="adicionarItem()">Adicionar Item</button>
 </section>
 
@@ -50,17 +61,32 @@
   <h3>Criar Produto Personalizado</h3>
   <input type="text" id="novoProdutoNome" placeholder="Nome do produto">
   <input type="number" id="novoProdutoPreco" placeholder="Preço base (R$)">
-  <button onclick="adicionarProdutoPersonalizado()">Adicionar Produto</button>
+  <select id="novoProdutoTipo">
+    <option value="unid">Unidade</option>
+    <option value="m2">m²</option>
+  </select>
+  <button onclick="cadastrarNovoProduto()">Adicionar Produto</button>
 </section>
 
 <section class="itens">
   <h3>Itens do Orçamento</h3>
   <div id="listaItens"></div>
-  <p>Total: R$ <span id="totalGeral">0.00</span></p>
-  <p>Frete: R$ <span id="frete">0.00</span></p>
+  <div class="total-row">
+    <span>Frete:</span> R$ <span id="frete">0.00</span>
+  </div>
+  <div class="total-row">
+    <span>Desconto/Taxa:</span> R$ <span id="desconto">0.00</span>
+  </div>
+  <div class="grand-total">
+    Total Geral: R$ <span id="totalGeral">0.00</span>
+  </div>
 </section>
 
-<button onclick="salvarOrcamento()">Salvar Orçamento / Enviar WhatsApp</button>
+<section class="botoes-orcamento">
+  <button onclick="salvarOrcamento()">Salvar Orçamento / Enviar WhatsApp</button>
+  <button onclick="gerarPDFOrcamento()">📄 Gerar PDF Orçamento</button>
+  <button onclick="gerarPDFPedido()">🧾 Gerar PDF Pedido</button>
+</section>
 
 <section class="orcamentos">
   <h3>Orçamentos Salvos</h3>
@@ -68,10 +94,26 @@
 </section>
 
 <section class="pedidos">
-  <h3>Pedidos Gerados</h3>
-  <div id="listaPedidos"></div>
+  <h3>Pedidos / Produção</h3>
+  <div style="display: flex; gap: 10px;">
+    <div>
+      <h4>Aguardando Aprovação</h4>
+      <div id="col-aguardando"></div>
+    </div>
+    <div>
+      <h4>Aprovados</h4>
+      <div id="col-aprovado"></div>
+    </div>
+    <div>
+      <h4>Produção / Andamento</h4>
+      <div id="col-andamento"></div>
+    </div>
+    <div>
+      <h4>Entregue</h4>
+      <div id="col-entregue"></div>
+    </div>
+  </div>
 </section>
 
-<script src="js/app.js"></script>
 </body>
 </html>
