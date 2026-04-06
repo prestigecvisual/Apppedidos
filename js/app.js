@@ -2,11 +2,22 @@
 // 🚀 INICIALIZAÇÃO
 // ===============================
 window.onload = () => { 
+    carregarDoNavegador();
+
     popularProdutos();
-    toggleMedidas(); //
+
+    // Garante seleção inicial
+    const select = document.getElementById("produto");
+    if (select && select.options.length > 0) {
+        select.selectedIndex = 0;
+    }
+
+    toggleMedidas();
+
     atualizarDataRef();
     atualizarListaOrcamentos();
     atualizarListaPedidos();
+
     calcularTotais();
 };
 
@@ -45,16 +56,41 @@ function gerarNumeroPedido() {
 }
 
 function cadastrarNovoProduto() {
-    const nome = document.getElementById("novoProdNome").value;
+    const nome = document.getElementById("novoProdNome").value.trim();
     const preco = parseFloat(document.getElementById("novoProdPreco").value);
     const tipo = document.getElementById("novoProdTipo").value;
 
-    if (!nome || isNaN(preco)) return alert("Preencha nome e preço!");
+    // Validação
+    if (!nome || isNaN(preco)) {
+        alert("Preencha nome e preço corretamente!");
+        return;
+    }
 
+    // Evitar duplicado
+    const existe = sistema.produtos.some(p => p.nome.toLowerCase() === nome.toLowerCase());
+    if (existe) {
+        alert("Esse produto já existe!");
+        return;
+    }
+
+    // Adiciona produto
     sistema.produtos.push({ nome, preco, tipo });
+
+    // Salva e atualiza lista
     salvarNoNavegador();
     popularProdutos();
-    alert("Produto cadastrado!");
+
+    // Limpa campos
+    document.getElementById("novoProdNome").value = "";
+    document.getElementById("novoProdPreco").value = "";
+
+    // Feedback
+    alert("✅ Produto cadastrado com sucesso!");
+
+    // Esconde o card (se estiver usando toggle)
+    if (typeof toggleNovoProduto === "function") {
+        toggleNovoProduto();
+    }
 }
 
 function popularProdutos() {
@@ -82,6 +118,16 @@ function toggleMedidas() {
         div.style.display = "flex";
     } else {
         div.style.display = "none";
+    }
+}
+
+function toggleNovoProduto() {
+    const card = document.getElementById("cardNovoProduto");
+
+    if (card.style.display === "none") {
+        card.style.display = "block";
+    } else {
+        card.style.display = "none";
     }
 }
 
