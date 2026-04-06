@@ -183,6 +183,27 @@ function calcularProduto() {
     };
 }
 
+function gerarQRCodePIX(valor) {
+    return new Promise((resolve) => {
+        const chavePIX = "11922018290";
+
+        const payload = `00020126580014BR.GOV.BCB.PIX0136${chavePIX}52040000530398654${valor.toFixed(2)}5802BR5920Prestige Comunicacao6009Sao Paulo62070503***6304`;
+
+        const div = document.createElement("div");
+
+        new QRCode(div, {
+            text: payload,
+            width: 150,
+            height: 150
+        });
+
+        setTimeout(() => {
+            const img = div.querySelector("img").src;
+            resolve(img);
+        }, 500);
+    });
+}
+
 function buscarCEP() {
     const cep = document.getElementById("clienteCEP").value.replace(/\D/g, '');
 
@@ -444,72 +465,267 @@ function enviarWhatsApp() {
     window.open(url, "_blank");
 }
 
-function gerarPDFOrcamento(index) {
+async function gerarPDFOrcamento(index) {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    const doc = new jsPDF('p', 'mm', 'a4');
 
     const o = sistema.orcamentos[index];
 
-    let y = 20;
+    let y = 10;
 
+    // -----------------------------
+    // Cabeçalho Empresa
+    // -----------------------------
     doc.setFontSize(14);
-    doc.text("ORÇAMENTO", 150, y);
-
+    doc.text("Prestige Comunicação Visual", 10, y);
+    y += 6;
     doc.setFontSize(10);
-    doc.text("Prestige Comunicação Visual", 10, 10);
+    doc.text("Rua Brasil, 304 - Rudge Ramos - São Bernardo do Campo - SP - CEP: 09627-000", 10, y);
+    y += 4;
+    doc.text("PIX: 11922018290", 10, y);
+    y += 10;
 
-    doc.text(`Cliente: ${o.cliente}`, 10, 30);
-    doc.text(`Data: ${o.data}`, 10, 35);
+    // -----------------------------
+    // Dados do Orçamento
+    // -----------------------------
+    doc.setFontSize(12);
+    doc.text(`ORÇAMENTO Nº: ${o.numero || "-"}`, 10, y);
+    y += 5;
+    doc.setFontSize(10);
+    doc.text(`Data: ${o.data || "-"}`, 10, y);
+    doc.text(`Status: ${o.status || "-"}`, 150, y); 
+    y += 8;
 
-    y = 50;
+    // -----------------------------
+    // Dados do Cliente
+    // -----------------------------
+    doc.setFontSize(10);
+    doc.text(`Cliente: ${o.cliente || "-"}`, 10, y);
+    y += 5;
+    doc.text(`Endereço: ${o.clienteEndereco || "-"}`, 10, y);
+    y += 5;
+    doc.text(`Bairro: ${o.clienteBairro || "-"}`, 10, y);
+    y += 5;
+    doc.text(`Cidade/UF: ${o.clienteCidade || "-"} / ${o.clienteEstado || "-"}`, 10, y);
+    y += 5;
+    doc.text(`CEP: ${o.clienteCEP || "-"}`, 10, y);
+    y += 10;
 
-    let total = 0;
+    // -----------------------------
+    // Linha de Títulos Itens
+    // -----------------------------
+    doc.setFontSize(10);
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.1);
+    doc.line(10, y, 200, y);
+    y += 2;
+    doc.text("Produto", 10, y);
+    doc.text("Qtd", 120, y);
+    doc.text("Medida", 140, y);
+    doc.text("Valor Unit.", 160, y);
+    doc.text("Total", 190, y, { align: "right" });
+    y += 2;
+    doc.line(10, y, 200, y);
+    y += 5;
 
+    // -----------------------------
+    // Itens
+    // -----------------------------
+    let totalGeral = 0;
     o.itens.forEach(item => {
-        total += item.total;
+        const valorUnit = Number(item.total / item.qtd || 0).toFixed(2);
+        const totalItem = Number(item.total || 0).toFixed(2);
+        totalGeral += Number(totalItem);
 
-        doc.text(item.nome, 10, y);
-        doc.text(`Qtd: ${item.qtd}`, 90, y);
-        doc.text(`R$ ${item.total.toFixed(2)}`, 150, y);
+        doc.text(item.nome || "-", 10, y);
+        doc.text(`${item.qtd || 0}`, 120, y);
+        doc.text(item.medida || "-", 140, y);
+        doc.text(`R$ ${valorUnit}`, 160, y);
+        doc.text(`R$ ${totalItem}`, 190, y, { align: "right" });
 
         y += 7;
     });
 
+    // -----------------------------
+    // Total Geral
+    // -----------------------------
+    y += 2;
+    doc.line(10, y, 200, y);
+    y += 5;
     doc.setFontSize(12);
-    doc.text(`TOTAL: R$ ${total.toFixed(2)}`, 140, y + 10);
+    doc.text(`TOTAL GERAL: R$ ${totalGeral.toFixed(2)}`, 200, y, { align: "right" });
 
-    doc.text("Validade: 7 dias", 10, y + 20);
+    // -----------------------------
+    // Mensagem final
+    // -----------------------------
+    y += 15;
+    doc.setFontSize(10);
+    doc.text("Deus Seja Sempre Louvado! Tudo posso Naquele que me Fortalece!", 10, y);
 
-    doc.save(`orcamento_${o.cliente}.pdf`);
+    // -----------------------------
+    // QR Code PIX
+    // -----------------------------
+    const qrCode = await gerarQRCodePIX(totalGeral);
+    doc.addImage(qrCode, "PNG", 150, y - 5, 50, 50);
+
+    // -----------------------------
+    // Salvar PDF
+    // -----------------------------
+    doc.save(`orcamento_${o.cliente || "orcamento"}.pdf`);
 }
 
-function gerarPDFPedido(index) {
+// -----------------------------
+// Função QR Code PIX (mesma do pedido)
+// -----------------------------
+function gerarQRCodePIX(valor) {
+    return new Promise((resolve) => {
+        const chavePIX = "11922018290";
+        const payload = `00020126580014BR.GOV.BCB.PIX0136${chavePIX}52040000530398654${Number(valor).toFixed(2)}5802BR5920Prestige Comunicacao6009Sao Paulo62070503***6304`;
+
+        const div = document.createElement("div");
+        new QRCode(div, {
+            text: payload,
+            width: 150,
+            height: 150
+        });
+
+        setTimeout(() => {
+            const img = div.querySelector("img").src;
+            resolve(img);
+        }, 500);
+    });
+}
+
+async function gerarPDFPedido(index) {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    const doc = new jsPDF('p', 'mm', 'a4');
 
     const p = sistema.pedidos[index];
 
-    let y = 20;
+    let y = 10;
 
-    // 🔥 BORDA ESTILO NOTA
-    doc.rect(5, 5, 200, 287);
-
+    // -----------------------------
+    // Cabeçalho Empresa
+    // -----------------------------
     doc.setFontSize(14);
-    doc.text("PEDIDO", 150, y);
-
+    doc.text("Prestige Comunicação Visual", 10, y);
+    y += 6;
     doc.setFontSize(10);
-    doc.text("Prestige Comunicação Visual", 10, 10);
+    doc.text("Rua Brasil, 304 - Rudge Ramos - São Bernardo do Campo - SP - CEP: 09627-000", 10, y);
+    y += 4;
+    doc.text("PIX: 11922018290", 10, y);
+    y += 10;
 
-    doc.text(`Pedido Nº: ${p.numero}`, 10, 25);
-    doc.text(`Cliente: ${p.cliente}`, 10, 30);
-    doc.text(`Data: ${p.dataAprovacao}`, 10, 35);
+    // -----------------------------
+    // Dados do Pedido
+    // -----------------------------
+    doc.setFontSize(12);
+    doc.text(`PEDIDO Nº: ${p.numero || "-"}`, 10, y);
+    y += 5;
+    doc.setFontSize(10);
+    doc.text(`Data: ${p.dataAprovacao || "-"}`, 10, y);
+    doc.text(`Status: ${p.status || "-"}`, 150, y); 
+    y += 8;
 
-    y = 50;
+    // -----------------------------
+    // Dados do Cliente
+    // -----------------------------
+    doc.setFontSize(10);
+    doc.text(`Cliente: ${p.cliente || "-"}`, 10, y);
+    y += 5;
+    doc.text(`Endereço: ${p.clienteEndereco || "-"}`, 10, y);
+    y += 5;
+    doc.text(`Bairro: ${p.clienteBairro || "-"}`, 10, y);
+    y += 5;
+    doc.text(`Cidade/UF: ${p.clienteCidade || "-"} / ${p.clienteEstado || "-"}`, 10, y);
+    y += 5;
+    doc.text(`CEP: ${p.clienteCEP || "-"}`, 10, y);
+    y += 10;
 
-    let total = 0;
+    // -----------------------------
+    // Linha de Títulos Itens
+    // -----------------------------
+    doc.setFontSize(10);
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.1);
+    doc.line(10, y, 200, y); // linha horizontal
+    y += 2;
+    doc.text("Produto", 10, y);
+    doc.text("Qtd", 120, y);
+    doc.text("Medida", 140, y);
+    doc.text("Valor Unit.", 160, y);
+    doc.text("Total", 190, y, { align: "right" });
+    y += 2;
+    doc.line(10, y, 200, y);
+    y += 5;
 
+    // -----------------------------
+    // Itens
+    // -----------------------------
+    let totalGeral = 0;
     p.itens.forEach(item => {
-        total += item.total;
+        const valorUnit = Number(item.total / item.qtd || 0).toFixed(2);
+        const totalItem = Number(item.total || 0).toFixed(2);
+        totalGeral += Number(totalItem);
+
+        doc.text(item.nome || "-", 10, y);
+        doc.text(`${item.qtd || 0}`, 120, y);
+        doc.text(item.medida || "-", 140, y);
+        doc.text(`R$ ${valorUnit}`, 160, y);
+        doc.text(`R$ ${totalItem}`, 190, y, { align: "right" });
+
+        y += 7;
+    });
+
+    // -----------------------------
+    // Total Geral
+    // -----------------------------
+    y += 2;
+    doc.line(10, y, 200, y);
+    y += 5;
+    doc.setFontSize(12);
+    doc.text(`TOTAL GERAL: R$ ${totalGeral.toFixed(2)}`, 200, y, { align: "right" });
+
+    // -----------------------------
+    // Mensagem final
+    // -----------------------------
+    y += 15;
+    doc.setFontSize(10);
+    doc.text("Deus Seja Sempre Louvado! Tudo posso Naquele que me Fortalece!", 10, y);
+
+    // -----------------------------
+    // QR Code PIX
+    // -----------------------------
+    const qrCode = await gerarQRCodePIX(totalGeral);
+    doc.addImage(qrCode, "PNG", 150, y - 5, 50, 50); // canto inferior direito
+
+    // -----------------------------
+    // Salvar PDF
+    // -----------------------------
+    doc.save(`pedido_${p.numero || "pedido"}.pdf`);
+}
+
+// -----------------------------
+// Função QR Code PIX
+// -----------------------------
+function gerarQRCodePIX(valor) {
+    return new Promise((resolve) => {
+        const chavePIX = "11922018290";
+        const payload = `00020126580014BR.GOV.BCB.PIX0136${chavePIX}52040000530398654${Number(valor).toFixed(2)}5802BR5920Prestige Comunicacao6009Sao Paulo62070503***6304`;
+
+        const div = document.createElement("div");
+        new QRCode(div, {
+            text: payload,
+            width: 150,
+            height: 150
+        });
+
+        setTimeout(() => {
+            const img = div.querySelector("img").src;
+            resolve(img);
+        }, 500);
+    });
+}
 
         doc.text(item.nome, 10, y);
         doc.text(`Qtd: ${item.qtd}`, 90, y);
