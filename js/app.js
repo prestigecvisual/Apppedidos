@@ -131,7 +131,8 @@ function salvarOrcamento() {
         cliente: document.getElementById("clienteNome").value,
         total: document.getElementById("totalGeral").textContent,
         data: atualizarDataRef(),
-        status: "Orçamento"
+        status: "Orçamento",
+        itens: [...sistema.carrinho] // 🔥 ESSENCIAL
     });
 
     sistema.carrinho = [];
@@ -155,7 +156,8 @@ function aprovarOrcamento(index) {
         ...orc,
         numero: numeroPedido,
         status: "Produção",
-        dataAprovacao: new Date().toLocaleDateString()
+        dataAprovacao: new Date().toLocaleDateString(),
+        itens: orc.itens // 🔥 garante itens no pedido
     });
 
     orc.status = "Aprovado";
@@ -254,4 +256,86 @@ function enviarWhatsApp() {
     const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
 
     window.open(url, "_blank");
+}
+
+function gerarPDFOrcamento(index) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    const o = sistema.orcamentos[index];
+
+    let y = 20;
+
+    doc.setFontSize(14);
+    doc.text("ORÇAMENTO", 150, y);
+
+    doc.setFontSize(10);
+    doc.text("Prestige Comunicação Visual", 10, 10);
+
+    doc.text(`Cliente: ${o.cliente}`, 10, 30);
+    doc.text(`Data: ${o.data}`, 10, 35);
+
+    y = 50;
+
+    let total = 0;
+
+    o.itens.forEach(item => {
+        total += item.total;
+
+        doc.text(item.nome, 10, y);
+        doc.text(`Qtd: ${item.qtd}`, 90, y);
+        doc.text(`R$ ${item.total.toFixed(2)}`, 150, y);
+
+        y += 7;
+    });
+
+    doc.setFontSize(12);
+    doc.text(`TOTAL: R$ ${total.toFixed(2)}`, 140, y + 10);
+
+    doc.text("Validade: 7 dias", 10, y + 20);
+
+    doc.save(`orcamento_${o.cliente}.pdf`);
+}
+
+function gerarPDFPedido(index) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    const p = sistema.pedidos[index];
+
+    let y = 20;
+
+    // 🔥 BORDA ESTILO NOTA
+    doc.rect(5, 5, 200, 287);
+
+    doc.setFontSize(14);
+    doc.text("PEDIDO", 150, y);
+
+    doc.setFontSize(10);
+    doc.text("Prestige Comunicação Visual", 10, 10);
+
+    doc.text(`Pedido Nº: ${p.numero}`, 10, 25);
+    doc.text(`Cliente: ${p.cliente}`, 10, 30);
+    doc.text(`Data: ${p.dataAprovacao}`, 10, 35);
+
+    y = 50;
+
+    let total = 0;
+
+    p.itens.forEach(item => {
+        total += item.total;
+
+        doc.text(item.nome, 10, y);
+        doc.text(`Qtd: ${item.qtd}`, 90, y);
+        doc.text(`R$ ${item.total.toFixed(2)}`, 150, y);
+
+        y += 7;
+    });
+
+    doc.setFontSize(12);
+    doc.text(`TOTAL: R$ ${total.toFixed(2)}`, 140, y + 10);
+
+    doc.text(`Status: ${p.status}`, 10, y + 20);
+
+    doc.save(`pedido_${p.numero}.pdf`);
 }
