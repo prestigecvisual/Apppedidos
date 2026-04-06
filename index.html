@@ -26,7 +26,7 @@
         </div>
 
         <div>
-            <p>Ref: <span id="numeroOrcamento">--/--/--</span></p>
+            <p>Ref: <span id="numeroOrcamento">------</span></p>
         </div>
 
     </div>
@@ -43,6 +43,7 @@
             <input type="text" id="novoProdNome" placeholder="Nome">
             <input type="number" id="novoProdPreco" placeholder="Preço">
             <select id="novoProdTipo">
+                <option value="pç">Peça</option>
                 <option value="m2">m²</option>
                 <option value="unid">Unidade</option>
             </select>
@@ -86,6 +87,7 @@
             <select id="formaPagamento" onchange="calcularTotais()">
                 <option value="pix">PIX (-5%)</option>
                 <option value="debito">Débito</option>
+                <option value="credito_1x">1x (+1,5%)</option>
                 <option value="credito_3x">3x (+6%)</option>
                 <option value="credito_5x">5x (+7%)</option>
             </select>
@@ -95,7 +97,8 @@
             <h3>Total: R$ <span id="totalGeral">0.00</span></h3>
 
             <button onclick="salvarOrcamento()">Salvar Orçamento</button>
-            <button id="gerarPDF">Gerar PDF</button>
+            <button onclick="gerarPDF('orcamento')">📄 Orçamento</button>
+            <button onclick="gerarPDF('pedido')">🧾 Pedido</button>
             <button onclick="enviarWhatsApp()">WhatsApp</button>
         </section>
 
