@@ -196,20 +196,21 @@ function atualizarListaOrcamentos() {
 
     div.innerHTML = "";
 
-    div.innerHTML += `
-    <p>
-        <b>${o.cliente}</b> - R$ ${o.total}
-        <br>Status: ${o.status || "Orçamento"}
-        <br><br>
+    sistema.orcamentos.forEach((o, i) => {
+        div.innerHTML += `
+        <p>
+            <b>${o.cliente}</b> - R$ ${o.total.toFixed(2)}
+            <br>Status: ${o.status || "Orçamento"}
+            <br><br>
 
-        <button onclick="gerarPDFOrcamento(${i})">📄 PDF</button>
+            <button onclick="gerarPDFOrcamento(${i})">📄 PDF</button>
 
-        ${o.status !== "Aprovado" 
-            ? `<button onclick="aprovarOrcamento(${i})">✅ Aprovar</button>` 
-            : "✔️ Aprovado"
-        }
-    </p>
-`;
+            ${o.status !== "Aprovado" 
+                ? `<button onclick="aprovarOrcamento(${i})">✅ Aprovar</button>` 
+                : "✔️ Aprovado"
+            }
+        </p>
+        `;
     });
 }
 
