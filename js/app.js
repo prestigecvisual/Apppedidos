@@ -3,6 +3,7 @@
 // ===============================
 window.onload = () => { 
     popularProdutos();
+    toggleMedidas(); //
     atualizarDataRef();
     atualizarListaOrcamentos();
     atualizarListaPedidos();
@@ -68,8 +69,78 @@ function popularProdutos() {
 }
 
 function toggleMedidas() {
-    const p = sistema.produtos[document.getElementById("produto").value];
-    document.getElementById("medidasInput").style.display = (p.tipo === "unid") ? "none" : "flex";
+    const select = document.getElementById("produto");
+    const div = document.getElementById("medidasInput");
+
+    if (!select || !div) return;
+
+    const produto = sistema.produtos[select.value];
+
+    if (!produto) return;
+
+    if (produto.tipo === "m2") {
+        div.style.display = "flex";
+    } else {
+        div.style.display = "none";
+    }
+}
+
+function calcularProduto() {
+    const index = document.getElementById("produto").value;
+    const produto = sistema.produtos[index];
+
+    const qtd = parseFloat(document.getElementById("quantidade").value) || 1;
+
+    let total = 0;
+    let descricao = "";
+
+    if (produto.tipo === "m2") {
+        const largura = parseFloat(document.getElementById("largura").value) || 0;
+        const altura = parseFloat(document.getElementById("altura").value) || 0;
+
+        const area = (largura * altura) / 10000;
+        total = area * produto.preco * qtd;
+
+        descricao = `${largura}x${altura} cm (${area.toFixed(2)} m²)`;
+    } else {
+        total = produto.preco * qtd;
+        descricao = `${qtd} peça(s)`;
+    }
+
+    document.getElementById("previewCalculo").textContent =
+        `Valor Unitário: R$ ${produto.preco.toFixed(2)} | Total: R$ ${total.toFixed(2)}`;
+
+    window.tempItem = {
+        nome: produto.nome,
+        qtd,
+        total,
+        medida: descricao
+    };
+}
+
+function buscarCEP() {
+    const cep = document.getElementById("clienteCEP").value.replace(/\D/g, '');
+
+    if (cep.length !== 8) {
+        alert("CEP inválido");
+        return;
+    }
+
+    fetch(`https://viacep.com.br/ws/${cep}/json/`)
+        .then(res => res.json())
+        .then(dados => {
+            if (dados.erro) {
+                alert("CEP não encontrado");
+                return;
+            }
+
+            document.getElementById("clienteEndereco").value = dados.logradouro;
+            document.getElementById("clienteBairro").value = dados.bairro;
+            document.getElementById("clienteCidade").value = dados.localidade;
+            document.getElementById("clienteEstado").value = dados.uf;
+
+        })
+        .catch(() => alert("Erro ao buscar CEP"));
 }
 
 function adicionarItem() {
@@ -273,15 +344,11 @@ function mudarStatus(index, novoStatus) {
 }
 
 function enviarWhatsApp() {
+
     let msg = "🧾 *Orçamento Prestige Comunicação Visual*\n\n";
 
     const nome = document.getElementById("clienteNome").value;
-    const telefone = document.getElementById("clienteTelefone").value;
-
-    if (!telefone) {
-        alert("Digite o WhatsApp do cliente");
-        return;
-    }
+    const numero = document.getElementById("clienteWhatsApp").value.replace(/\D/g, '');
 
     msg += `👤 Cliente: ${nome}\n\n`;
 
@@ -291,15 +358,12 @@ function enviarWhatsApp() {
 
     msg += `\n💰 Total: R$ ${document.getElementById("totalGeral").textContent}`;
 
-    // 🔥 LIMPA O NÚMERO (remove tudo que não for número)
-    let numero = telefone.replace(/\D/g, "");
-
-    // 🔥 GARANTE DDI BRASIL (55)
-    if (!numero.startsWith("55")) {
-        numero = "55" + numero;
+    if (!numero) {
+        alert("Informe o WhatsApp do cliente");
+        return;
     }
 
-    const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
+    const url = `https://wa.me/55${numero}?text=${encodeURIComponent(msg)}`;
 
     window.open(url, "_blank");
 }
