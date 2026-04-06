@@ -6,6 +6,13 @@ window.onload = () => {
     calcularTotais();
 };
 
+// 💰 FORMATAÇÃO DE MOEDA
+function formatarMoeda(valor) {
+    return valor.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+    });
+
 // GERADOR DE NÚMERO DE PEDIDO (MMDDYY + SEQUÊNCIA)
 function gerarNumeroPedido() {
     const hoje = new Date();
@@ -173,15 +180,20 @@ function atualizarListaOrcamentos() {
 
     div.innerHTML = "";
 
-    sistema.orcamentos.forEach((o, i) => {
-        div.innerHTML += `
-            <p>
-                ${o.cliente} - R$ ${o.total}
-                <br>Status: ${o.status || "Orçamento"}
-                <br>
-                ${o.status !== "Aprovado" ? `<button onclick="aprovarOrcamento(${i})">Aprovar</button>` : "✅ Aprovado"}
-            </p>
-        `;
+    div.innerHTML += `
+    <p>
+        <b>${o.cliente}</b> - R$ ${o.total}
+        <br>Status: ${o.status || "Orçamento"}
+        <br><br>
+
+        <button onclick="gerarPDFOrcamento(${i})">📄 PDF</button>
+
+        ${o.status !== "Aprovado" 
+            ? `<button onclick="aprovarOrcamento(${i})">✅ Aprovar</button>` 
+            : "✔️ Aprovado"
+        }
+    </p>
+`;
     });
 }
 
@@ -215,10 +227,12 @@ function atualizarListaPedidos() {
             <small>${p.status}</small><br>
             <small>📅 ${p.dataAprovacao}</small><br><br>
 
+            <button onclick="gerarPDFPedido(${index})">🧾 PDF</button><br><br>
+
             ${p.status !== "Produção" ? `<button onclick="mudarStatus(${index}, 'Produção')">⬅</button>` : ""}
             ${p.status !== "Entregue" ? `<button onclick="mudarStatus(${index}, proximoStatus('${p.status}'))">➡</button>` : ""}
-        `;
-
+    `;
+        
         if (colunas[p.status]) {
             colunas[p.status].appendChild(card);
         }
