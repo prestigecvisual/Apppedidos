@@ -1,743 +1,465 @@
+// ========================================================
+// PRESTIGE COMUNICAÇÃO VISUAL - APP.JS
+// ========================================================
+
 // ===============================
-// 🚀 INICIALIZAÇÃO
+// 🔥 INICIALIZAÇÃO
 // ===============================
-window.onload = () => { 
+window.onload = () => {
     try {
         carregarDoNavegador();
 
-        // 🔥 Produtos
+        // Popular produtos no select
         popularProdutos();
 
         const select = document.getElementById("produto");
-        if (select && select.options.length > 0) {
-            select.selectedIndex = 0;
-        }
+        if (select && select.options.length > 0) select.selectedIndex = 0;
 
         toggleMedidas();
 
-        // 📅 Data
-        if (typeof atualizarDataRef === "function") {
-            atualizarDataRef();
-        }
+        // Atualizar data
+        if (typeof atualizarDataRef === "function") atualizarDataRef();
 
-        // 📦 Orçamentos
-        if (typeof atualizarListaOrcamentos === "function") {
-            atualizarListaOrcamentos();
-        }
+        // Atualizar listas
+        atualizarListaOrcamentos();
+        atualizarListaPedidos();
 
-        // 📋 Pedidos
-        if (typeof atualizarListaPedidos === "function") {
-            atualizarListaPedidos();
-        }
-
-        // 💰 Totais
-        if (typeof calcularTotais === "function") {
-            calcularTotais();
-        }
+        // Totais
+        calcularTotais();
 
     } catch (erro) {
         console.error("Erro ao iniciar sistema:", erro);
     }
 };
 
-// ===============================
-// 💰 FORMATAÇÃO DE MOEDA
-// ===============================
+// ========================================================
+// 💰 UTILITÁRIOS
+// ========================================================
 function formatarMoeda(valor) {
-    return valor.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL"
-    });
+    return Number(valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-// ===============================
-// 📅 DATA ATUAL
-// ===============================
 function dataHoje() {
-    return new Date().toLocaleDateString("pt-BR");
+    const d = new Date();
+    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 }
 
-// ===============================
-// 🔢 GERAR Nº PEDIDO
-// ===============================
 function gerarNumeroPedido() {
-    const hoje = new Date();
-    const mm = String(hoje.getMonth() + 1).padStart(2, '0');
-    const dd = String(hoje.getDate()).padStart(2, '0');
-    const yy = String(hoje.getFullYear()).slice(-2);
-
-    const base = `${mm}${dd}${yy}`;
-
-    const pedidosHoje = (sistema.pedidos || []).filter(p => p.numero?.startsWith(base));
-    const seq = String(pedidosHoje.length + 1).padStart(3, '0');
-
-    return base + seq;
+    const num = sistema.contadorOrcamento;
+    sistema.contadorOrcamento++;
+    salvarNoNavegador();
+    return num;
 }
 
+// ========================================================
+// 🛒 PRODUTOS
+// ========================================================
 function cadastrarNovoProduto() {
-    const nome = document.getElementById("novoProdNome").value.trim();
-    const preco = parseFloat(document.getElementById("novoProdPreco").value);
-    const tipo = document.getElementById("novoProdTipo").value;
+    const nome = document.getElementById("novoProdutoNome").value.trim();
+    const preco = parseFloat(document.getElementById("novoProdutoPreco").value);
 
-    // Validação
-    if (!nome || isNaN(preco)) {
-        alert("Preencha nome e preço corretamente!");
-        return;
-    }
+    if(!nome || isNaN(preco)) return alert("Preencha nome e preço corretamente.");
 
-    // Evitar duplicado
-    const existe = sistema.produtos.some(p => p.nome.toLowerCase() === nome.toLowerCase());
-    if (existe) {
-        alert("Esse produto já existe!");
-        return;
-    }
-
-    // Adiciona produto
-    sistema.produtos.push({ nome, preco, tipo });
-
-    // Salva e atualiza lista
+    sistema.produtos.push({ nome, preco, tipo: "unid" });
     salvarNoNavegador();
     popularProdutos();
 
-    // Limpa campos
-    document.getElementById("novoProdNome").value = "";
-    document.getElementById("novoProdPreco").value = "";
-
-    // Feedback
-    alert("✅ Produto cadastrado com sucesso!");
-
-    // Esconde o card (se estiver usando toggle)
-    if (typeof toggleNovoProduto === "function") {
-        toggleNovoProduto();
-    }
+    document.getElementById("novoProdutoNome").value = "";
+    document.getElementById("novoProdutoPreco").value = "";
 }
 
 function popularProdutos() {
-    const s = document.getElementById("produto");
-    if(!s) return;
-
-    s.innerHTML = "";
-
+    const select = document.getElementById("produto");
+    select.innerHTML = '<option value="">Selecione o produto</option>';
     sistema.produtos.forEach((p, i) => {
-        s.innerHTML += `<option value="${i}">${p.nome} - R$ ${p.preco.toFixed(2)} (${p.tipo})</option>`;
+        select.innerHTML += `<option value="${i}">${p.nome} - ${p.tipo === "unid" ? "unidade" : "m²"} - ${formatarMoeda(p.preco)}</option>`;
     });
 }
 
 function toggleMedidas() {
     const select = document.getElementById("produto");
-    const div = document.getElementById("medidasInput");
+    const largura = document.getElementById("largura");
+    const altura = document.getElementById("altura");
 
-    if (!select || !div) return;
-
-    const produto = sistema.produtos[select.value];
-
-    if (!produto) return;
-
-    if (produto.tipo === "m2") {
-        div.style.display = "flex";
-    } else {
-        div.style.display = "none";
+    if(!select) return;
+    select.onchange = () => {
+        const p = sistema.produtos[select.value];
+        if(!p) return;
+        if(p.tipo === "unid") {
+            largura.disabled = true;
+            altura.disabled = true;
+            largura.value = "";
+            altura.value = "";
+        } else {
+            largura.disabled = false;
+            altura.disabled = false;
+        }
     }
 }
 
-function toggleNovoProduto() {
-    const card = document.getElementById("cardNovoProduto");
-
-    if (card.style.display === "none") {
-        card.style.display = "block";
-    } else {
-        card.style.display = "none";
-    }
-}
-
+// ========================================================
+// 📦 CÁLCULO
+// ========================================================
 function calcularProduto() {
-    const index = document.getElementById("produto").value;
-    const produto = sistema.produtos[index];
+    const select = document.getElementById("produto");
+    const p = sistema.produtos[select.value];
+    if(!p) return 0;
 
-    const qtd = parseFloat(document.getElementById("quantidade").value) || 1;
+    const largura = parseFloat(document.getElementById("largura").value || 0);
+    const altura = parseFloat(document.getElementById("altura").value || 0);
+    const qtd = parseFloat(document.getElementById("quantidade").value || 1);
 
     let total = 0;
-    let descricao = "";
-
-    if (produto.tipo === "m2") {
-        const largura = parseFloat(document.getElementById("largura").value) || 0;
-        const altura = parseFloat(document.getElementById("altura").value) || 0;
-
-        const area = (largura * altura) / 10000;
-        total = area * produto.preco * qtd;
-
-        descricao = `${largura}x${altura} cm (${area.toFixed(2)} m²)`;
+    if(p.tipo === "unid") {
+        total = p.preco * qtd;
     } else {
-        total = produto.preco * qtd;
-        descricao = `${qtd} peça(s)`;
+        total = p.preco * (largura/100) * (altura/100) * qtd; // m²
     }
-
-    document.getElementById("previewCalculo").textContent =
-        `Valor Unitário: R$ ${produto.preco.toFixed(2)} | Total: R$ ${total.toFixed(2)}`;
-
-    window.tempItem = {
-        nome: produto.nome,
-        qtd,
-        total,
-        medida: descricao
-    };
+    return total;
 }
 
-function gerarQRCodePIX(valor) {
-    return new Promise((resolve) => {
-        const chavePIX = "11922018290";
+// ========================================================
+// 📡 FRETE CEP
+// ========================================================
+async function buscarCEP() {
+    const cep = document.getElementById("clienteCEP").value.replace(/\D/g,'');
+    if(!cep) return;
 
-        const payload = `00020126580014BR.GOV.BCB.PIX0136${chavePIX}52040000530398654${valor.toFixed(2)}5802BR5920Prestige Comunicacao6009Sao Paulo62070503***6304`;
+    try {
+        const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const data = await res.json();
 
-        const div = document.createElement("div");
+        if(data.erro) return alert("CEP inválido");
 
-        new QRCode(div, {
-            text: payload,
-            width: 150,
-            height: 150
-        });
+        document.getElementById("clienteEndereco").value = data.logradouro || "";
+        document.getElementById("clienteBairro").value = data.bairro || "";
+        document.getElementById("clienteCidade").value = data.localidade || "";
+        document.getElementById("clienteEstado").value = data.uf || "";
 
-        setTimeout(() => {
-            const img = div.querySelector("img").src;
-            resolve(img);
-        }, 500);
-    });
-}
-
-function buscarCEP() {
-    const cep = document.getElementById("clienteCEP").value.replace(/\D/g, '');
-
-    if (cep.length !== 8) {
-        alert("CEP inválido");
-        return;
+        calcularFrete(data);
+    } catch(err) {
+        console.error(err);
+        alert("Erro ao buscar CEP");
     }
-
-    fetch(`https://viacep.com.br/ws/${cep}/json/`)
-        .then(res => res.json())
-        .then(dados => {
-            if (dados.erro) {
-                alert("CEP não encontrado");
-                return;
-            }
-
-            document.getElementById("clienteEndereco").value = dados.logradouro;
-            document.getElementById("clienteBairro").value = dados.bairro;
-            document.getElementById("clienteCidade").value = dados.localidade;
-            document.getElementById("clienteEstado").value = dados.uf;
-
-        })
-        .catch(() => alert("Erro ao buscar CEP"));
 }
 
+function calcularFrete(data) {
+    const cidade = data.localidade.toLowerCase();
+    const uf = data.uf.toLowerCase();
+    let frete = 0;
+
+    if(cidade.includes("são paulo") && uf === "sp") frete = 0;
+    else if(["guarulhos","osasco","santo andré","são bernardo do campo","diadema","barueri","são caetano do sul"].includes(cidade)) frete = 20;
+    else frete = 50;
+
+    document.getElementById("frete").innerText = frete.toFixed(2);
+}
+
+// ========================================================
+// 🛒 CARRINHO / ORÇAMENTO
+// ========================================================
 function adicionarItem() {
-    const idx = document.getElementById("produto").value;
-    const p = sistema.produtos[idx];
-    const q = parseInt(document.getElementById("quantidade").value);
+    const select = document.getElementById("produto");
+    const p = sistema.produtos[select.value];
+    if(!p) return alert("Selecione produto");
 
-    let t = 0, m = "Unid";
+    const largura = parseFloat(document.getElementById("largura").value || 0);
+    const altura = parseFloat(document.getElementById("altura").value || 0);
+    const qtd = parseFloat(document.getElementById("quantidade").value || 1);
 
-    if(p.tipo === "m2") {
-        const l = parseFloat(document.getElementById("largura").value);
-        const a = parseFloat(document.getElementById("altura").value);
-        t = (l * a / 10000) * p.preco * q;
-        m = `${l}x${a}cm`;
-    } else {
-        t = p.preco * q;
-    }
+    let total = calcularProduto();
 
-    sistema.carrinho.push({ nome: p.nome, medida: m, qtd: q, total: t });
+    sistema.carrinho.push({
+        nome: p.nome,
+        tipo: p.tipo,
+        largura,
+        altura,
+        qtd,
+        total
+    });
 
+    salvarNoNavegador();
     atualizarCarrinho();
     calcularTotais();
 }
 
 function atualizarCarrinho() {
-    const l = document.getElementById("listaItens");
-    if (!l) return;
-
-    l.innerHTML = "";
-
-    sistema.carrinho.forEach((i, index) => {
-        l.innerHTML += `
-            <p style="font-size:0.85em;">
-                ${i.nome} (${i.medida}) x${i.qtd} - <b>R$ ${i.total.toFixed(2)}</b>
-                <button onclick="removerItem(${index})" style="margin-left:10px;">❌</button>
-            </p>
-        `;
+    const div = document.getElementById("listaItens");
+    div.innerHTML = "";
+    sistema.carrinho.forEach((item, i) => {
+        div.innerHTML += `<div>${item.nome} - ${item.qtd} x ${formatarMoeda(item.total/item.qtd)} = ${formatarMoeda(item.total)} <button onclick="removerItem(${i})">❌</button></div>`;
     });
 }
 
 function removerItem(index) {
-    sistema.carrinho.splice(index, 1);
+    sistema.carrinho.splice(index,1);
+    salvarNoNavegador();
     atualizarCarrinho();
     calcularTotais();
 }
 
 function calcularTotais() {
-    let sub = 0;
-
-    sistema.carrinho.forEach(i => sub += i.total);
-
-    const cepInput = document.getElementById("clienteCEP");
-    const cep = cepInput ? cepInput.value.replace(/\D/g, "") : "";
-
-    let f = (cep.length === 8) ? (cep.startsWith("0") ? 15 : 40) : 0;
-
-    const pgSelect = document.getElementById("formaPagamento");
-    const pg = pgSelect ? pgSelect.value : "pix";
-
-    let tx =
-        (pg === "pix") ? -(sub * 0.05) :
-        (pg === "credito_3x") ? sub * 0.06 :
-        (pg === "credito_5x") ? sub * 0.07 : 0;
-
-    document.getElementById("frete").textContent = f.toFixed(2);
-    document.getElementById("desconto").textContent = Math.abs(tx).toFixed(2);
-    document.getElementById("totalGeral").textContent = (sub + f + tx).toFixed(2);
+    let total = sistema.carrinho.reduce((sum,item)=>sum+item.total,0);
+    const frete = parseFloat(document.getElementById("frete").innerText || 0);
+    total += frete;
+    document.getElementById("totalGeral").innerText = total.toFixed(2);
 }
 
+// ========================================================
+// 📅 ORÇAMENTOS / PEDIDOS
+// ========================================================
 function atualizarDataRef() {
-    const d = new Date();
-    const ref = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
-    document.getElementById("numeroOrcamento").innerText = gerarNumeroPedido();
-    document.getElementById("numeroOrcamento").textContent = ref;
-    return ref;
+    document.getElementById("dataRef").innerText = dataHoje();
 }
 
 function salvarOrcamento() {
-    if(sistema.carrinho.length === 0) return alert("Carrinho vazio!");
+    const cliente = document.getElementById("clienteNome").value.trim();
+    if(!cliente) return alert("Preencha dados do cliente");
+    const numero = gerarNumeroPedido();
+    const data = dataHoje();
 
-    sistema.orcamentos.push({
-        cliente: document.getElementById("clienteNome").value,
-        total: document.getElementById("totalGeral").textContent,
-        data: atualizarDataRef(),
-        status: "Orçamento",
-        itens: [...sistema.carrinho] // 🔥 ESSENCIAL
-    });
+    const orc = {
+        numero,
+        dataCriacao: data,
+        cliente,
+        clienteEndereco: document.getElementById("clienteEndereco").value,
+        clienteBairro: document.getElementById("clienteBairro").value,
+        clienteCidade: document.getElementById("clienteCidade").value,
+        clienteEstado: document.getElementById("clienteEstado").value,
+        clienteCEP: document.getElementById("clienteCEP").value,
+        itens: [...sistema.carrinho],
+        frete: parseFloat(document.getElementById("frete").innerText || 0),
+        status: "Aguardando aprovação"
+    };
+
+    sistema.orcamentos.push(orc);
+    salvarNoNavegador();
 
     sistema.carrinho = [];
-
-    salvarNoNavegador();
     atualizarCarrinho();
     atualizarListaOrcamentos();
+    calcularTotais();
 }
 
+// Aprovar orçamento → transforma em pedido
 function aprovarOrcamento(index) {
-    const orc = sistema.orcamentos[index];
-
-    if (orc.status === "Aprovado") {
-        alert("Esse orçamento já foi aprovado!");
-        return;
-    }
-
-    const numeroPedido = gerarNumeroPedido();
-
-    sistema.pedidos.push({
-        ...orc,
-        numero: numeroPedido,
-        status: "Produção",
-        dataAprovacao: new Date().toLocaleDateString(),
-        itens: orc.itens // 🔥 garante itens no pedido
-    });
-
-    orc.status = "Aprovado";
-
+    const o = sistema.orcamentos[index];
+    o.status = "Aprovado";
+    sistema.pedidos.push({...o, dataAprovacao: dataHoje()});
     salvarNoNavegador();
     atualizarListaOrcamentos();
     atualizarListaPedidos();
 }
 
+// Atualiza lista de orçamentos
 function atualizarListaOrcamentos() {
     const div = document.getElementById("listaOrcamentos");
-    if (!div) return;
-
     div.innerHTML = "";
-
-    if (!sistema.orcamentos.length) {
-        div.innerHTML = "<p>Nenhum orçamento ainda.</p>";
-        return;
-    }
-
-    sistema.orcamentos.forEach((o, i) => {
-        const total = Number(o.total || 0);
-
+    sistema.orcamentos.forEach((o,i)=>{
         div.innerHTML += `
-        <div class="orcamento-card">
-            <p>
-                <b>${o.cliente || "Sem nome"}</b><br>
-                💰 R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}<br>
-                📌 Status: ${o.status || "Orçamento"}
-            </p>
-
-            <div class="acoes">
-                <button onclick="gerarPDFOrcamento(${i})">📄 PDF</button>
-
-                ${o.status !== "Aprovado" 
-                    ? `<button onclick="aprovarOrcamento(${i})">✅ Aprovar</button>` 
-                    : `<span style="color:green;">✔️ Aprovado</span>`
-                }
-            </div>
-        </div>
-        `;
+        <div>
+            #${o.numero} - ${o.cliente} - ${o.status}
+            <button onclick="aprovarOrcamento(${i})">Aprovar ✅</button>
+            <button onclick="gerarPDFOrcamento(${i})">📄 PDF</button>
+            <button onclick="enviarWhatsApp(${i})">💬 WhatsApp</button>
+        </div>`;
     });
 }
 
+// Atualiza lista de pedidos
 function atualizarListaPedidos() {
+    const colProducao = document.getElementById("col-producao");
+    const colAndamento = document.getElementById("col-andamento");
+    const colFinalizado = document.getElementById("col-finalizado");
+    const colEntregue = document.getElementById("col-entregue");
 
-    const colunas = {
-        "Produção": document.getElementById("col-producao"),
-        "Em andamento": document.getElementById("col-andamento"),
-        "Finalizado": document.getElementById("col-finalizado"),
-        "Entregue": document.getElementById("col-entregue")
-    };
+    colProducao.innerHTML = colAndamento.innerHTML = colFinalizado.innerHTML = colEntregue.innerHTML = "";
 
-    Object.values(colunas).forEach(col => {
-        if (col) col.innerHTML = "";
-    });
-
-    if (!sistema.pedidos || sistema.pedidos.length === 0) return;
-
-    sistema.pedidos.forEach((p, index) => {
-
-        const card = document.createElement("div");
-        card.style.background = "#f1f5f9";
-        card.style.padding = "10px";
-        card.style.marginBottom = "10px";
-        card.style.borderRadius = "6px";
-
-        card.innerHTML = `
-            <b>#${p.numero}</b><br>
-            ${p.cliente}<br>
-            R$ ${p.total}<br>
-            <small>${p.status}</small><br>
-            <small>📅 ${p.dataAprovacao}</small><br><br>
-
-            <button onclick="gerarPDFPedido(${index})">🧾 PDF</button><br><br>
-
-            ${p.status !== "Produção" ? `<button onclick="mudarStatus(${index}, 'Produção')">⬅</button>` : ""}
-            ${p.status !== "Entregue" ? `<button onclick="mudarStatus(${index}, proximoStatus('${p.status}'))">➡</button>` : ""}
-    `;
-        
-        if (colunas[p.status]) {
-            colunas[p.status].appendChild(card);
+    sistema.pedidos.forEach((p,i)=>{
+        const btnNext = `<button onclick="proximoStatus(${i})">➡️</button>`;
+        const html = `<div>#${p.numero} - ${p.cliente} (${p.status}) ${btnNext}</div>`;
+        switch(p.status){
+            case "Aprovado": colProducao.innerHTML += html; break;
+            case "Produção": colAndamento.innerHTML += html; break;
+            case "Em andamento": colFinalizado.innerHTML += html; break;
+            case "Finalizado": colEntregue.innerHTML += html; break;
+            case "Entregue": colEntregue.innerHTML += html; break;
         }
     });
 }
 
-function proximoStatus(atual) {
-    switch(atual) {
-        case "Produção": return "Em andamento";
-        case "Em andamento": return "Finalizado";
-        case "Finalizado": return "Entregue";
-        default: return "Produção";
+// Avança status do pedido
+function proximoStatus(index){
+    const p = sistema.pedidos[index];
+    if(!p) return;
+    switch(p.status){
+        case "Aprovado": p.status="Produção"; break;
+        case "Produção": p.status="Em andamento"; break;
+        case "Em andamento": p.status="Finalizado"; break;
+        case "Finalizado": p.status="Entregue"; break;
     }
-}
-
-function mudarStatus(index, novoStatus) {
-    sistema.pedidos[index].status = novoStatus;
-
     salvarNoNavegador();
     atualizarListaPedidos();
 }
 
-function enviarWhatsApp() {
+// ========================================================
+// 📤 WhatsApp
+// ========================================================
+function enviarWhatsApp(index){
+    const p = sistema.orcamentos[index] || sistema.pedidos[index];
+    if(!p) return alert("Item não encontrado");
 
-    let msg = "🧾 *Orçamento Prestige Comunicação Visual*\n\n";
-
-    const nome = document.getElementById("clienteNome").value;
-    const numero = document.getElementById("clienteWhatsApp").value.replace(/\D/g, '');
-
-    msg += `👤 Cliente: ${nome}\n\n`;
-
-    sistema.carrinho.forEach(i => {
-        msg += `• ${i.nome} (${i.medida}) x${i.qtd} = R$ ${i.total.toFixed(2)}\n`;
+    let msg = `*Prestige Comunicação Visual*\nOrçamento/Pedido #${p.numero}\nCliente: ${p.cliente}\nEndereço: ${p.clienteEndereco}, ${p.clienteBairro}, ${p.clienteCidade} - ${p.clienteEstado}\nCEP: ${p.clienteCEP}\n\nItens:\n`;
+    p.itens.forEach(i=>{
+        msg += `${i.nome} - ${i.qtd} x ${formatarMoeda(i.total/i.qtd)} = ${formatarMoeda(i.total)}\n`;
     });
+    msg += `\nFrete: ${formatarMoeda(p.frete)}\nTOTAL: ${formatarMoeda(p.itens.reduce((s,i)=>s+i.total,0)+p.frete)}\n\nStatus: ${p.status}`;
 
-    msg += `\n💰 Total: R$ ${document.getElementById("totalGeral").textContent}`;
-
-    if (!numero) {
-        alert("Informe o WhatsApp do cliente");
-        return;
-    }
-
-    const url = `https://wa.me/55${numero}?text=${encodeURIComponent(msg)}`;
-
-    window.open(url, "_blank");
+    window.open(`https://api.whatsapp.com/send?phone=5511922018290&text=${encodeURIComponent(msg)}`,'_blank');
 }
 
-async function gerarPDFOrcamento(index) {
+// ========================================================
+// 📄 PDF
+// ========================================================
+
+async function gerarPDFOrcamento(index){
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4');
+    const doc = new jsPDF('p','mm','a4');
+    const p = sistema.orcamentos[index];
+    let y=10;
 
-    const o = sistema.orcamentos[index];
+    doc.setFontSize(14); doc.text("Prestige Comunicação Visual",10,y); y+=6;
+    doc.setFontSize(10); doc.text("Rua Brasil, 304 - Rudge Ramos - São Bernardo do Campo - SP - CEP: 09627-000",10,y); y+=4;
+    doc.text("PIX: 11922018290",10,y); y+=10;
 
-    let y = 10;
+    doc.setFontSize(12); doc.text(`ORÇAMENTO Nº: ${p.numero || "-"}`,10,y); y+=5;
+    doc.setFontSize(10); doc.text(`Data: ${p.dataCriacao || "-"}`,10,y);
+    doc.text(`Status: ${p.status || "-"}`,150,y); y+=8;
 
-    // -----------------------------
-    // Cabeçalho Empresa
-    // -----------------------------
-    doc.setFontSize(14);
-    doc.text("Prestige Comunicação Visual", 10, y);
-    y += 6;
-    doc.setFontSize(10);
-    doc.text("Rua Brasil, 304 - Rudge Ramos - São Bernardo do Campo - SP - CEP: 09627-000", 10, y);
-    y += 4;
-    doc.text("PIX: 11922018290", 10, y);
-    y += 10;
+    doc.setFontSize(10); doc.text(`Cliente: ${p.cliente || "-"}`,10,y); y+=5;
+    doc.text(`Endereço: ${p.clienteEndereco || "-"}`,10,y); y+=5;
+    doc.text(`Bairro: ${p.clienteBairro || "-"}`,10,y); y+=5;
+    doc.text(`Cidade/UF: ${p.clienteCidade || "-"} / ${p.clienteEstado || "-"}`,10,y); y+=5;
+    doc.text(`CEP: ${p.clienteCEP || "-"}`,10,y); y+=10;
 
-    // -----------------------------
-    // Dados do Orçamento
-    // -----------------------------
-    doc.setFontSize(12);
-    doc.text(`ORÇAMENTO Nº: ${o.numero || "-"}`, 10, y);
-    y += 5;
-    doc.setFontSize(10);
-    doc.text(`Data: ${o.data || "-"}`, 10, y);
-    doc.text(`Status: ${o.status || "-"}`, 150, y); 
-    y += 8;
+    doc.setFontSize(10); doc.setDrawColor(0); doc.setLineWidth(0.1);
+    doc.line(10,y,200,y); y+=2;
+    doc.text("Produto",10,y); doc.text("Qtd",120,y); doc.text("Medida",140,y); doc.text("Valor Unit.",160,y); doc.text("Total",190,y,{align:"right"}); y+=2;
+    doc.line(10,y,200,y); y+=5;
 
-    // -----------------------------
-    // Dados do Cliente
-    // -----------------------------
-    doc.setFontSize(10);
-    doc.text(`Cliente: ${o.cliente || "-"}`, 10, y);
-    y += 5;
-    doc.text(`Endereço: ${o.clienteEndereco || "-"}`, 10, y);
-    y += 5;
-    doc.text(`Bairro: ${o.clienteBairro || "-"}`, 10, y);
-    y += 5;
-    doc.text(`Cidade/UF: ${o.clienteCidade || "-"} / ${o.clienteEstado || "-"}`, 10, y);
-    y += 5;
-    doc.text(`CEP: ${o.clienteCEP || "-"}`, 10, y);
-    y += 10;
-
-    // -----------------------------
-    // Linha de Títulos Itens
-    // -----------------------------
-    doc.setFontSize(10);
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.1);
-    doc.line(10, y, 200, y);
-    y += 2;
-    doc.text("Produto", 10, y);
-    doc.text("Qtd", 120, y);
-    doc.text("Medida", 140, y);
-    doc.text("Valor Unit.", 160, y);
-    doc.text("Total", 190, y, { align: "right" });
-    y += 2;
-    doc.line(10, y, 200, y);
-    y += 5;
-
-    // -----------------------------
-    // Itens
-    // -----------------------------
     let totalGeral = 0;
-    o.itens.forEach(item => {
-        const valorUnit = Number(item.total / item.qtd || 0).toFixed(2);
-        const totalItem = Number(item.total || 0).toFixed(2);
+    p.itens.forEach(item=>{
+        const valorUnit = Number(item.total/item.qtd||0).toFixed(2);
+        const totalItem = Number(item.total||0).toFixed(2);
         totalGeral += Number(totalItem);
 
-        doc.text(item.nome || "-", 10, y);
-        doc.text(`${item.qtd || 0}`, 120, y);
-        doc.text(item.medida || "-", 140, y);
-        doc.text(`R$ ${valorUnit}`, 160, y);
-        doc.text(`R$ ${totalItem}`, 190, y, { align: "right" });
-
-        y += 7;
+        doc.text(item.nome||"-",10,y);
+        doc.text(`${item.qtd||0}`,120,y);
+        doc.text(item.tipo==="m2"?`${item.largura}x${item.altura} cm`:"-",140,y);
+        doc.text(`R$ ${valorUnit}`,160,y);
+        doc.text(`R$ ${totalItem}`,190,y,{align:"right"});
+        y+=7;
     });
 
-    // -----------------------------
-    // Total Geral
-    // -----------------------------
-    y += 2;
-    doc.line(10, y, 200, y);
-    y += 5;
-    doc.setFontSize(12);
-    doc.text(`TOTAL GERAL: R$ ${totalGeral.toFixed(2)}`, 200, y, { align: "right" });
+    y+=2; doc.line(10,y,200,y); y+=5;
+    doc.setFontSize(12); doc.text(`TOTAL GERAL: R$ ${totalGeral.toFixed(2)}`,200,y,{align:"right"});
+    y+=15; doc.setFontSize(10); doc.text("Deus Seja Sempre Louvado! Tudo posso Naquele que me Fortalece!",10,y);
 
-    // -----------------------------
-    // Mensagem final
-    // -----------------------------
-    y += 15;
-    doc.setFontSize(10);
-    doc.text("Deus Seja Sempre Louvado! Tudo posso Naquele que me Fortalece!", 10, y);
-
-    // -----------------------------
-    // QR Code PIX
-    // -----------------------------
     const qrCode = await gerarQRCodePIX(totalGeral);
-    doc.addImage(qrCode, "PNG", 150, y - 5, 50, 50);
+    doc.addImage(qrCode,"PNG",150,y-5,50,50);
 
-    // -----------------------------
-    // Salvar PDF
-    // -----------------------------
-    doc.save(`orcamento_${o.cliente || "orcamento"}.pdf`);
+    doc.save(`orcamento_${p.numero || "orcamento"}.pdf`);
 }
 
-// -----------------------------
-// Função QR Code PIX (mesma do pedido)
-// -----------------------------
-function gerarQRCodePIX(valor) {
-    return new Promise((resolve) => {
-        const chavePIX = "11922018290";
-        const payload = `00020126580014BR.GOV.BCB.PIX0136${chavePIX}52040000530398654${Number(valor).toFixed(2)}5802BR5920Prestige Comunicacao6009Sao Paulo62070503***6304`;
-
-        const div = document.createElement("div");
-        new QRCode(div, {
-            text: payload,
-            width: 150,
-            height: 150
-        });
-
-        setTimeout(() => {
-            const img = div.querySelector("img").src;
-            resolve(img);
-        }, 500);
-    });
-}
-
-async function gerarPDFPedido(index) {
+async function gerarPDFPedido(index){
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4');
-
+    const doc = new jsPDF('p','mm','a4');
     const p = sistema.pedidos[index];
+    let y=10;
 
-    let y = 10;
+    doc.setFontSize(14); doc.text("Prestige Comunicação Visual",10,y); y+=6;
+    doc.setFontSize(10); doc.text("Rua Brasil, 304 - Rudge Ramos - São Bernardo do Campo - SP - CEP: 09627-000",10,y); y+=4;
+    doc.text("PIX: 11922018290",10,y); y+=10;
 
-    // -----------------------------
-    // Cabeçalho Empresa
-    // -----------------------------
-    doc.setFontSize(14);
-    doc.text("Prestige Comunicação Visual", 10, y);
-    y += 6;
-    doc.setFontSize(10);
-    doc.text("Rua Brasil, 304 - Rudge Ramos - São Bernardo do Campo - SP - CEP: 09627-000", 10, y);
-    y += 4;
-    doc.text("PIX: 11922018290", 10, y);
-    y += 10;
+    doc.setFontSize(12); doc.text(`PEDIDO Nº: ${p.numero || "-"}`,10,y); y+=5;
+    doc.setFontSize(10); doc.text(`Data: ${p.dataAprovacao || "-"}`,10,y);
+    doc.text(`Status: ${p.status || "-"}`,150,y); y+=8;
 
-    // -----------------------------
-    // Dados do Pedido
-    // -----------------------------
-    doc.setFontSize(12);
-    doc.text(`PEDIDO Nº: ${p.numero || "-"}`, 10, y);
-    y += 5;
-    doc.setFontSize(10);
-    doc.text(`Data: ${p.dataAprovacao || "-"}`, 10, y);
-    doc.text(`Status: ${p.status || "-"}`, 150, y); 
-    y += 8;
+    doc.setFontSize(10); doc.text(`Cliente: ${p.cliente || "-"}`,10,y); y+=5;
+    doc.text(`Endereço: ${p.clienteEndereco || "-"}`,10,y); y+=5;
+    doc.text(`Bairro: ${p.clienteBairro || "-"}`,10,y); y+=5;
+    doc.text(`Cidade/UF: ${p.clienteCidade || "-"} / ${p.clienteEstado || "-"}`,10,y); y+=5;
+    doc.text(`CEP: ${p.clienteCEP || "-"}`,10,y); y+=10;
 
-    // -----------------------------
-    // Dados do Cliente
-    // -----------------------------
-    doc.setFontSize(10);
-    doc.text(`Cliente: ${p.cliente || "-"}`, 10, y);
-    y += 5;
-    doc.text(`Endereço: ${p.clienteEndereco || "-"}`, 10, y);
-    y += 5;
-    doc.text(`Bairro: ${p.clienteBairro || "-"}`, 10, y);
-    y += 5;
-    doc.text(`Cidade/UF: ${p.clienteCidade || "-"} / ${p.clienteEstado || "-"}`, 10, y);
-    y += 5;
-    doc.text(`CEP: ${p.clienteCEP || "-"}`, 10, y);
-    y += 10;
+    doc.setFontSize(10); doc.setDrawColor(0); doc.setLineWidth(0.1);
+    doc.line(10,y,200,y); y+=2;
+    doc.text("Produto",10,y); doc.text("Qtd",120,y); doc.text("Medida",140,y); doc.text("Valor Unit.",160,y); doc.text("Total",190,y,{align:"right"}); y+=2;
+    doc.line(10,y,200,y); y+=5;
 
-    // -----------------------------
-    // Linha de Títulos Itens
-    // -----------------------------
-    doc.setFontSize(10);
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.1);
-    doc.line(10, y, 200, y); // linha horizontal
-    y += 2;
-    doc.text("Produto", 10, y);
-    doc.text("Qtd", 120, y);
-    doc.text("Medida", 140, y);
-    doc.text("Valor Unit.", 160, y);
-    doc.text("Total", 190, y, { align: "right" });
-    y += 2;
-    doc.line(10, y, 200, y);
-    y += 5;
-
-    // -----------------------------
-    // Itens
-    // -----------------------------
     let totalGeral = 0;
-    p.itens.forEach(item => {
-        const valorUnit = Number(item.total / item.qtd || 0).toFixed(2);
-        const totalItem = Number(item.total || 0).toFixed(2);
+    p.itens.forEach(item=>{
+        const valorUnit = Number(item.total/item.qtd||0).toFixed(2);
+        const totalItem = Number(item.total||0).toFixed(2);
         totalGeral += Number(totalItem);
 
-        doc.text(item.nome || "-", 10, y);
-        doc.text(`${item.qtd || 0}`, 120, y);
-        doc.text(item.medida || "-", 140, y);
-        doc.text(`R$ ${valorUnit}`, 160, y);
-        doc.text(`R$ ${totalItem}`, 190, y, { align: "right" });
-
-        y += 7;
+        doc.text(item.nome||"-",10,y);
+        doc.text(`${item.qtd||0}`,120,y);
+        doc.text(item.tipo==="m2"?`${item.largura}x${item.altura} cm`:"-",140,y);
+        doc.text(`R$ ${valorUnit}`,160,y);
+        doc.text(`R$ ${totalItem}`,190,y,{align:"right"});
+        y+=7;
     });
 
-    // -----------------------------
-    // Total Geral
-    // -----------------------------
-    y += 2;
-    doc.line(10, y, 200, y);
-    y += 5;
-    doc.setFontSize(12);
-    doc.text(`TOTAL GERAL: R$ ${totalGeral.toFixed(2)}`, 200, y, { align: "right" });
+    y+=2; doc.line(10,y,200,y); y+=5;
+    doc.setFontSize(12); doc.text(`TOTAL GERAL: R$ ${totalGeral.toFixed(2)}`,200,y,{align:"right"});
+    y+=15; doc.setFontSize(10); doc.text("Deus Seja Sempre Louvado! Tudo posso Naquele que me Fortalece!",10,y);
 
-    // -----------------------------
-    // Mensagem final
-    // -----------------------------
-    y += 15;
-    doc.setFontSize(10);
-    doc.text("Deus Seja Sempre Louvado! Tudo posso Naquele que me Fortalece!", 10, y);
-
-    // -----------------------------
-    // QR Code PIX
-    // -----------------------------
     const qrCode = await gerarQRCodePIX(totalGeral);
-    doc.addImage(qrCode, "PNG", 150, y - 5, 50, 50); // canto inferior direito
+    doc.addImage(qrCode,"PNG",150,y-5,50,50);
 
-    // -----------------------------
-    // Salvar PDF
-    // -----------------------------
     doc.save(`pedido_${p.numero || "pedido"}.pdf`);
 }
 
-// -----------------------------
-// Função QR Code PIX
-// -----------------------------
+// ========================================================
+// 💳 QR CODE PIX
+// ========================================================
 function gerarQRCodePIX(valor) {
-    return new Promise((resolve) => {
-        const chavePIX = "11922018290";
-        const payload = `00020126580014BR.GOV.BCB.PIX0136${chavePIX}52040000530398654${Number(valor).toFixed(2)}5802BR5920Prestige Comunicacao6009Sao Paulo62070503***6304`;
+    return new Promise(resolve=>{
+        const chavePIX="11922018290";
+        const payload=`00020126580014BR.GOV.BCB.PIX0136${chavePIX}52040000530398654${Number(valor).toFixed(2)}5802BR5920Prestige Comunicacao6009Sao Paulo62070503***6304`;
 
-        const div = document.createElement("div");
-        new QRCode(div, {
-            text: payload,
-            width: 150,
-            height: 150
-        });
-
-        setTimeout(() => {
+        const div=document.createElement("div");
+        new QRCode(div,{text:payload,width:150,height:150});
+        setTimeout(()=>{
             const img = div.querySelector("img").src;
             resolve(img);
-        }, 500);
+        },500);
     });
 }
 
-        doc.text(item.nome, 10, y);
-        doc.text(`Qtd: ${item.qtd}`, 90, y);
-        doc.text(`R$ ${item.total.toFixed(2)}`, 150, y);
-
-        y += 7;
-    });
-
-    doc.setFontSize(12);
-    doc.text(`TOTAL: R$ ${total.toFixed(2)}`, 140, y + 10);
-
-    doc.text(`Status: ${p.status}`, 10, y + 20);
-
-    doc.save(`pedido_${p.numero}.pdf`);
+// ========================================================
+// 💾 LOCAL STORAGE
+// ========================================================
+function salvarNoNavegador() {
+    localStorage.setItem("sistema",JSON.stringify(sistema));
 }
+
+function carregarDoNavegador() {
+    const data = JSON.parse(localStorage.getItem("sistema"));
+    if(data) Object.assign(sistema,data);
+}
+
+// ========================================================
+// 🌐 SISTEMA
+// ========================================================
+const sistema = {
+    produtos:[
+        {nome:"Banner",preco:50,tipo:"m2"},
+        {nome:"Adesivo",preco:30,tipo:"m2"},
+        {nome:"Chaveiro",preco:10,tipo:"unid"}
+    ],
+    carrinho:[],
+    orcamentos:[],
+    pedidos:[],
+    contadorOrcamento:1
+};
