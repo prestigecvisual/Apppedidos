@@ -57,7 +57,7 @@
     <input type="text" id="clienteEstado" placeholder="Estado">
 </section>
 
-        <!-- CALCULADORA -->
+<!-- CALCULADORA -->
 <section class="card">
     <h3>Calculadora</h3>
 
@@ -72,25 +72,25 @@
 
     <button onclick="calcularProduto()">🧮 Calcular</button>
 
-    <p id="previewItem" style="margin-top:10px; font-weight:bold;"></p>
+    <p id="previewCalculo" style="margin-top:10px; font-weight:bold;"></p>
 
     <button onclick="adicionarItem()">➕ Lançar Produto</button>
 </section>
-    </div>
 
-      <!-- PRODUTO -->
-        <section class="card">
-            <h3>+ Novo Produto</h3>
-            <input type="text" id="novoProdNome" placeholder="Nome">
-            <input type="number" id="novoProdPreco" placeholder="Preço">
-            <select id="novoProdTipo">
-                <option value="pç">Peça</option>
-                <option value="m2">m²</option>
-                <option value="unid">Unidade</option>
-            </select>
-            <button onclick="cadastrarNovoProduto()">Salvar</button>
-        </section>
+<!-- PRODUTO -->
+<section class="card">
+    <h3>+ Novo Produto</h3>
 
+    <input type="text" id="novoProdNome" placeholder="Nome">
+    <input type="number" id="novoProdPreco" placeholder="Preço">
+
+    <select id="novoProdTipo">
+        <option value="unid">Unidade</option>
+        <option value="m2">m²</option>
+    </select>
+
+    <button onclick="cadastrarNovoProduto()">Salvar</button>
+</section>
 
     <!-- DIREITA -->
     <div>
