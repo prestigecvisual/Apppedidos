@@ -29,3 +29,13 @@ button { cursor: pointer; border: none; border-radius: 8px; padding: 12px; font-
 .grand-total { font-size: 1.3rem; color: #1e293b; border-top: 1px solid #ddd; padding-top: 10px; }
 
 @media (max-width: 900px) { .content-layout { grid-template-columns: 1fr; } .dashboard-grid { grid-template-columns: 1fr; } }
+
+/* Layout lado a lado */
+.container-flex {display: flex; gap: 20px; align-items: flex-start;}
+
+.col-esquerda {flex: 2;}
+
+.col-direita {flex: 1; position: sticky; top: 10px;}
+
+/* Responsivo */
+@media (max-width: 768px) {.container-flex {flex-direction: column;}.col-direita {position: static;}}
