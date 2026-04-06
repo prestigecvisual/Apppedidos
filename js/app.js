@@ -1,3 +1,6 @@
+// ===============================
+// 🚀 INICIALIZAÇÃO
+// ===============================
 window.onload = () => { 
     popularProdutos();
     atualizarDataRef();
@@ -6,14 +9,26 @@ window.onload = () => {
     calcularTotais();
 };
 
+// ===============================
 // 💰 FORMATAÇÃO DE MOEDA
+// ===============================
 function formatarMoeda(valor) {
     return valor.toLocaleString("pt-BR", {
         style: "currency",
         currency: "BRL"
     });
+}
 
-// GERADOR DE NÚMERO DE PEDIDO (MMDDYY + SEQUÊNCIA)
+// ===============================
+// 📅 DATA ATUAL
+// ===============================
+function dataHoje() {
+    return new Date().toLocaleDateString("pt-BR");
+}
+
+// ===============================
+// 🔢 GERAR Nº PEDIDO
+// ===============================
 function gerarNumeroPedido() {
     const hoje = new Date();
     const mm = String(hoje.getMonth() + 1).padStart(2, '0');
@@ -127,6 +142,7 @@ function calcularTotais() {
 function atualizarDataRef() {
     const d = new Date();
     const ref = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+    document.getElementById("numeroOrcamento").innerText = gerarNumeroPedido();
     document.getElementById("numeroOrcamento").textContent = ref;
     return ref;
 }
@@ -258,7 +274,15 @@ function mudarStatus(index, novoStatus) {
 function enviarWhatsApp() {
     let msg = "🧾 *Orçamento Prestige Comunicação Visual*\n\n";
 
-    msg += `👤 Cliente: ${document.getElementById("clienteNome").value}\n\n`;
+    const nome = document.getElementById("clienteNome").value;
+    const telefone = document.getElementById("clienteTelefone").value;
+
+    if (!telefone) {
+        alert("Digite o WhatsApp do cliente");
+        return;
+    }
+
+    msg += `👤 Cliente: ${nome}\n\n`;
 
     sistema.carrinho.forEach(i => {
         msg += `• ${i.nome} (${i.medida}) x${i.qtd} = R$ ${i.total.toFixed(2)}\n`;
@@ -266,7 +290,14 @@ function enviarWhatsApp() {
 
     msg += `\n💰 Total: R$ ${document.getElementById("totalGeral").textContent}`;
 
-    const numero = "5511922018290";
+    // 🔥 LIMPA O NÚMERO (remove tudo que não for número)
+    let numero = telefone.replace(/\D/g, "");
+
+    // 🔥 GARANTE DDI BRASIL (55)
+    if (!numero.startsWith("55")) {
+        numero = "55" + numero;
+    }
+
     const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
 
     window.open(url, "_blank");
