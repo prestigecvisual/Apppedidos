@@ -37,7 +37,48 @@
     <!-- ESQUERDA -->
     <div>
 
-        <!-- PRODUTO -->
+              <!-- CLIENTE -->
+<section class="card">
+    <h3>Cliente</h3>
+
+    <input type="text" id="clienteNome" placeholder="Nome">
+    <input type="text" id="clienteDoc" placeholder="CPF/CNPJ">
+
+    <input type="text" id="clienteTelefone" placeholder="Telefone">
+    <input type="text" id="clienteWhatsApp" placeholder="WhatsApp (com DDD)">
+
+    <input type="text" id="clienteCEP" placeholder="CEP" onblur="buscarCEP()">
+
+    <input type="text" id="clienteEndereco" placeholder="Rua">
+    <input type="text" id="clienteNumero" placeholder="Número">
+
+    <input type="text" id="clienteBairro" placeholder="Bairro">
+    <input type="text" id="clienteCidade" placeholder="Cidade">
+    <input type="text" id="clienteEstado" placeholder="Estado">
+</section>
+
+        <!-- CALCULADORA -->
+<section class="card">
+    <h3>Calculadora</h3>
+
+    <select id="produto" onchange="toggleMedidas()"></select>
+
+    <div id="medidasInput">
+        <input type="number" id="largura" placeholder="L (cm)">
+        <input type="number" id="altura" placeholder="A (cm)">
+    </div>
+
+    <input type="number" id="quantidade" value="1">
+
+    <button onclick="calcularProduto()">🧮 Calcular</button>
+
+    <p id="previewItem" style="margin-top:10px; font-weight:bold;"></p>
+
+    <button onclick="adicionarItem()">➕ Lançar Produto</button>
+</section>
+    </div>
+
+      <!-- PRODUTO -->
         <section class="card">
             <h3>+ Novo Produto</h3>
             <input type="text" id="novoProdNome" placeholder="Nome">
@@ -50,30 +91,6 @@
             <button onclick="cadastrarNovoProduto()">Salvar</button>
         </section>
 
-        <!-- CLIENTE -->
-        <section class="card">
-            <h3>Cliente</h3>
-            <input type="text" id="clienteNome" placeholder="Nome">
-            <input type="text" id="clienteDoc" placeholder="CPF/CNPJ">
-            <input type="text" id="clienteCEP" placeholder="CEP">
-            <input type="text" id="clienteEndereco" placeholder="Endereço">
-        </section>
-
-        <!-- CALCULADORA -->
-        <section class="card">
-            <h3>Calculadora</h3>
-            <select id="produto" onchange="toggleMedidas()"></select>
-
-            <div id="medidasInput">
-                <input type="number" id="largura" placeholder="L">
-                <input type="number" id="altura" placeholder="A">
-            </div>
-
-            <input type="number" id="quantidade" value="1">
-            <button onclick="adicionarItem()">Adicionar</button>
-        </section>
-
-    </div>
 
     <!-- DIREITA -->
     <div>
