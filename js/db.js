@@ -2,7 +2,6 @@
 // ESTRUTURA DE DADOS - PRESTIGE COMUNICAÇÃO VISUAL
 // ========================================================
 
-// Definimos os produtos iniciais separadamente para comparação
 const PRODUTOS_PADRAO = [
     { nome: "Adesivo Simples", preco: 120.00, tipo: "m2" },
     { nome: "Adesivo Premium", preco: 150.00, tipo: "m2" },
@@ -20,7 +19,7 @@ const PRODUTOS_PADRAO = [
 ];
 
 const sistema = {
-    produtos: [...PRODUTOS_PADRAO], // Inicia com o padrão
+    produtos: [...PRODUTOS_PADRAO],
     clientes: [],
     carrinho: [],
     orcamentos: [],
@@ -34,40 +33,31 @@ const sistema = {
 
 function salvarNoNavegador() {
     try {
-        localStorage.setItem('PrestigeData', JSON.stringify(sistema));
+        localStorage.setItem('sistema', JSON.stringify(sistema));
     } catch (e) {
         console.error("Erro ao salvar dados no navegador:", e);
     }
 }
 
 function carregarDoNavegador() {
-    const salvos = localStorage.getItem('PrestigeData');
+    const salvos = localStorage.getItem('sistema');
     
     if (salvos) {
         try {
             const dados = JSON.parse(salvos);
-            
-            // 1. GESTÃO DE PRODUTOS:
-            // Só substitui se os dados salvos tiverem produtos (preserva cadastros novos)
-            if (dados.produtos && dados.produtos.length > 0) {
-                sistema.produtos = dados.produtos;
-            }
 
-            // 2. OUTROS DADOS (Uso de operador OR para evitar valores nulos)
+            if (dados.produtos && dados.produtos.length > 0) sistema.produtos = dados.produtos;
             sistema.clientes = dados.clientes || [];
             sistema.orcamentos = dados.orcamentos || [];
             sistema.pedidos = dados.pedidos || [];
+            sistema.carrinho = dados.carrinho || [];
             sistema.contadorOrcamento = dados.contadorOrcamento || 1;
-            
-            // Opcional: Descomente se quiser que o carrinho não limpe ao dar F5
-            // sistema.carrinho = dados.carrinho || [];
 
         } catch (error) {
             console.error("Erro ao carregar dados salvos:", error);
-            // Em caso de erro no JSON, mantém o padrão do objeto 'sistema'
         }
     }
 }
 
-// Inicializa o carregamento imediatamente
+// Inicializa o carregamento
 carregarDoNavegador();
