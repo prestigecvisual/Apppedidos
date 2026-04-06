@@ -2,23 +2,42 @@
 // 🚀 INICIALIZAÇÃO
 // ===============================
 window.onload = () => { 
-    carregarDoNavegador();
+    try {
+        carregarDoNavegador();
 
-    popularProdutos();
+        // 🔥 Produtos
+        popularProdutos();
 
-    // Garante seleção inicial
-    const select = document.getElementById("produto");
-    if (select && select.options.length > 0) {
-        select.selectedIndex = 0;
+        const select = document.getElementById("produto");
+        if (select && select.options.length > 0) {
+            select.selectedIndex = 0;
+        }
+
+        toggleMedidas();
+
+        // 📅 Data
+        if (typeof atualizarDataRef === "function") {
+            atualizarDataRef();
+        }
+
+        // 📦 Orçamentos
+        if (typeof atualizarListaOrcamentos === "function") {
+            atualizarListaOrcamentos();
+        }
+
+        // 📋 Pedidos
+        if (typeof atualizarListaPedidos === "function") {
+            atualizarListaPedidos();
+        }
+
+        // 💰 Totais
+        if (typeof calcularTotais === "function") {
+            calcularTotais();
+        }
+
+    } catch (erro) {
+        console.error("Erro ao iniciar sistema:", erro);
     }
-
-    toggleMedidas();
-
-    atualizarDataRef();
-    atualizarListaOrcamentos();
-    atualizarListaPedidos();
-
-    calcularTotais();
 };
 
 // ===============================
@@ -313,20 +332,31 @@ function atualizarListaOrcamentos() {
 
     div.innerHTML = "";
 
+    if (!sistema.orcamentos.length) {
+        div.innerHTML = "<p>Nenhum orçamento ainda.</p>";
+        return;
+    }
+
     sistema.orcamentos.forEach((o, i) => {
+        const total = Number(o.total || 0);
+
         div.innerHTML += `
-        <p>
-            <b>${o.cliente}</b> - R$ ${o.total.toFixed(2)}
-            <br>Status: ${o.status || "Orçamento"}
-            <br><br>
+        <div class="orcamento-card">
+            <p>
+                <b>${o.cliente || "Sem nome"}</b><br>
+                💰 R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}<br>
+                📌 Status: ${o.status || "Orçamento"}
+            </p>
 
-            <button onclick="gerarPDFOrcamento(${i})">📄 PDF</button>
+            <div class="acoes">
+                <button onclick="gerarPDFOrcamento(${i})">📄 PDF</button>
 
-            ${o.status !== "Aprovado" 
-                ? `<button onclick="aprovarOrcamento(${i})">✅ Aprovar</button>` 
-                : "✔️ Aprovado"
-            }
-        </p>
+                ${o.status !== "Aprovado" 
+                    ? `<button onclick="aprovarOrcamento(${i})">✅ Aprovar</button>` 
+                    : `<span style="color:green;">✔️ Aprovado</span>`
+                }
+            </div>
+        </div>
         `;
     });
 }
