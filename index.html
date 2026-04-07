@@ -1,119 +1,167 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>App Pedidos - Prestige Comunicação Visual</title>
-  <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-  <script src="js/db.js"></script>
-  <script src="js/app.js" defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prestige - Sistema de Pedidos</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="js/db.js"></script>
+<script src="js/app.js" defer></script>
 </head>
 <body>
 
-<header>
-  <div class="logo">
-    <img src="img/logo.png" alt="Logo">
-  </div>
-  <div class="contato">
-    <p>Prestige Comunicação Visual</p>
-    <p>Rua Brasil, 304 - São Bernardo do Campo - SP - CEP: 09267000</p>
-    <p>Email: prestigecvisual@.com</p>
-    <p>Tel/WhatsApp: (11) 92201-8290</p>
-  </div>
+<header style="background: #1e293b; color: white; padding: 20px 0; border-bottom: 4px solid #3b82f6;">
+<div style="max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <img src="img/logo.png" class="logo-img" style="height:60px;">
+        <div>
+            <h1 style="margin: 0;">Prestige Comunicação Visual</h1>
+            <p style="font-size: 0.85em;">Rua Brasil, 304 - Rudge Ramos - São Bernardo do Campo - SP | (11) 92201-8290</p>
+        </div>
+    </div>
+    <div>
+        <p>Ref: <span id="numeroOrcamento">------</span></p>
+    </div>
+</div>
 </header>
 
-<h2>Novo Orçamento / Pedido</h2>
+<main style="max-width: 1200px; margin: 30px auto; display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 30px;">
+<!-- ESQUERDA -->
+<div>
 
-<section class="cliente">
-  <h3>Informações do Cliente</h3>
-  <input type="text" id="clienteNome" placeholder="Nome completo">
-  <input type="text" id="clienteContato" placeholder="Contato (email ou rede)">
-  <input type="text" id="clienteTelefone" placeholder="Telefone">
-  <input type="text" id="clienteCEP" placeholder="CEP" onblur="buscarCEP()">
-  <input type="text" id="clienteEndereco" placeholder="Rua">
-  <input type="text" id="clienteNumero" placeholder="Número">
-  <input type="text" id="clienteBairro" placeholder="Bairro">
-  <input type="text" id="clienteCidade" placeholder="Cidade">
-  <input type="text" id="clienteEstado" placeholder="Estado">
+<!-- CLIENTE -->
+<section class="card">
+    <h3>Cliente</h3>
+    <input type="text" id="clienteNome" placeholder="Nome">
+    <input type="text" id="clienteDoc" placeholder="CPF/CNPJ">
+    <input type="text" id="clienteTelefone" placeholder="Telefone">
+    <input type="text" id="clienteWhatsApp" placeholder="WhatsApp (com DDD)">
+    <input type="text" id="clienteCEP" placeholder="CEP" onblur="buscarCEP()">
+    <input type="text" id="clienteEndereco" placeholder="Rua">
+    <input type="text" id="clienteNumero" placeholder="Número">
+    <input type="text" id="clienteBairro" placeholder="Bairro">
+    <input type="text" id="clienteCidade" placeholder="Cidade">
+    <input type="text" id="clienteEstado" placeholder="Estado">
 </section>
 
-<section class="produto">
-  <h3>Produtos Disponíveis</h3>
-  <select id="produto" onchange="calcularProduto()">
-    <option value="">Selecione o produto</option>
-  </select>
-
-  <input type="number" id="largura" placeholder="Largura (cm)" oninput="calcularProduto()">
-  <input type="number" id="altura" placeholder="Altura (cm)" oninput="calcularProduto()">
-  <input type="number" id="quantidade" placeholder="Quantidade" oninput="calcularProduto()">
-  
-  <div>
-    <p>Preço unitário: R$ <span id="precoUnitario">0.00</span></p>
-    <p>Total do item: R$ <span id="totalItem">0.00</span></p>
-  </div>
-  
-  <button onclick="adicionarItem()">Adicionar Item</button>
+<!-- CALCULADORA -->
+<section class="card">
+<h3>Adicionar Produto</h3>
+<select id="produto" onchange="toggleMedidas()"></select>
+<div id="medidasInput" style="display:none; gap:5px;">
+    <input type="number" id="largura" placeholder="Largura (cm)">
+    <input type="number" id="altura" placeholder="Altura (cm)">
+</div>
+<input type="number" id="quantidade" placeholder="Quantidade" value="1">
+<button onclick="adicionarItem()">Adicionar ao Carrinho</button>
+<p id="previewCalculo"></p>
 </section>
 
-<section class="produto-personalizado">
-  <h3>Criar Produto Personalizado</h3>
-  <input type="text" id="novoProdutoNome" placeholder="Nome do produto">
-  <input type="number" id="novoProdutoPreco" placeholder="Preço base (R$)">
-  <select id="novoProdutoTipo">
+<!-- NOVO PRODUTO -->
+<section class="card">
+<h3>+ Novo Produto</h3>
+<input type="text" id="novoProdNome" placeholder="Nome">
+<input type="number" id="novoProdPreco" placeholder="Preço">
+<select id="novoProdTipo">
     <option value="unid">Unidade</option>
     <option value="m2">m²</option>
-  </select>
-  <button onclick="cadastrarNovoProduto()">Adicionar Produto</button>
+</select>
+<button onclick="cadastrarNovoProduto()">Salvar</button>
 </section>
 
-<section class="itens">
-  <h3>Itens do Orçamento</h3>
-  <div id="listaItens"></div>
-  <div class="total-row">
-    <span>Frete:</span> R$ <span id="frete">0.00</span>
-  </div>
-  <div class="total-row">
-    <span>Desconto/Taxa:</span> R$ <span id="desconto">0.00</span>
-  </div>
-  <div class="grand-total">
-    Total Geral: R$ <span id="totalGeral">0.00</span>
-  </div>
+</div>
+
+<!-- DIREITA -->
+<div>
+
+<!-- RESUMO -->
+<section class="card">
+<h3>Resumo</h3>
+
+<!-- Lista de Itens no Carrinho -->
+<div id="listaItens"></div>
+
+<!-- Preview estilo DANFE -->
+<div id="previewDANFE" style="border:1px solid #ccc; padding:10px; margin-top:15px;">
+    <h4>Pré-Visualização do Orçamento (DANFE)</h4>
+    <div id="danfeCabecalho" style="margin-bottom:10px;"></div>
+    <table id="danfeTabela" style="width:100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background:#f3f3f3;">
+                <th style="border:1px solid #ccc; padding:5px;">Produto</th>
+                <th style="border:1px solid #ccc; padding:5px;">Qtd</th>
+                <th style="border:1px solid #ccc; padding:5px;">Medida</th>
+                <th style="border:1px solid #ccc; padding:5px;">Valor Unit.</th>
+                <th style="border:1px solid #ccc; padding:5px;">Total</th>
+            </tr>
+        </thead>
+        <tbody id="danfeCorpo"></tbody>
+        <tfoot>
+            <tr>
+                <td colspan="4" style="border:1px solid #ccc; padding:5px; text-align:right;">TOTAL GERAL:</td>
+                <td style="border:1px solid #ccc; padding:5px; text-align:right;" id="danfeTotalGeral">R$ 0.00</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- Observações -->
+    <p id="danfeObservacao" style="margin-top:10px;"><strong>Observação:</strong> Prazo do orçamento: 7 dias úteis.</p>
+
+    <!-- QR PIX -->
+    <div id="danfeQRCode" style="margin-top:10px;"></div>
+
+    <!-- Frase Final -->
+    <p style="text-align:center; margin-top:15px;">Deus Seja Sempre Louvado! Tudo posso Naquele que me Fortalece!</p>
+</div>
+
+<!-- Forma de Pagamento e Totais -->
+<select id="formaPagamento" onchange="calcularTotais()">
+    <option value="pix">PIX (-5%)</option>
+    <option value="debito">Débito</option>
+    <option value="credito_1x">1x (+1,5%)</option>
+    <option value="credito_3x">3x (+6%)</option>
+    <option value="credito_5x">5x (+7%)</option>
+</select>
+<p>Frete: R$ <span id="frete">0.00</span></p>
+<p>Taxa/Desc: R$ <span id="desconto">0.00</span></p>
+<h3>Total: R$ <span id="totalGeral">0.00</span></h3>
+<button onclick="salvarOrcamento()">Salvar Orçamento</button>
+<button onclick="enviarWhatsApp()">WhatsApp</button>
 </section>
 
-<section class="botoes-orcamento">
-  <button onclick="salvarOrcamento()">Salvar Orçamento / Enviar WhatsApp</button>
-  <button onclick="gerarPDFOrcamento()">📄 Gerar PDF Orçamento</button>
-  <button onclick="gerarPDFPedido()">🧾 Gerar PDF Pedido</button>
+<!-- ORÇAMENTOS -->
+<section class="card">
+<h3>📄 Orçamentos</h3>
+<div id="listaOrcamentos"></div>
 </section>
 
-<section class="orcamentos">
-  <h3>Orçamentos Salvos</h3>
-  <div id="listaOrcamentos"></div>
+<!-- PEDIDOS -->
+<section class="card">
+<h3>🏭 Produção / Pedidos</h3>
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+    <div class="card">
+        <h4>🟡 Produção</h4>
+        <div id="col-producao"></div>
+    </div>
+    <div class="card">
+        <h4>🔵 Em Andamento</h4>
+        <div id="col-andamento"></div>
+    </div>
+    <div class="card">
+        <h4>🟢 Finalizado</h4>
+        <div id="col-finalizado"></div>
+    </div>
+    <div class="card">
+        <h4>⚫ Entregue</h4>
+        <div id="col-entregue"></div>
+    </div>
+</div>
 </section>
 
-<section class="pedidos">
-  <h3>Pedidos / Produção</h3>
-  <div style="display: flex; gap: 10px;">
-    <div>
-      <h4>Aguardando Aprovação</h4>
-      <div id="col-aguardando"></div>
-    </div>
-    <div>
-      <h4>Aprovados</h4>
-      <div id="col-aprovado"></div>
-    </div>
-    <div>
-      <h4>Produção / Andamento</h4>
-      <div id="col-andamento"></div>
-    </div>
-    <div>
-      <h4>Entregue</h4>
-      <div id="col-entregue"></div>
-    </div>
-  </div>
-</section>
+</div>
+</main>
 
 </body>
 </html>
