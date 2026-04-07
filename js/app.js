@@ -1,5 +1,5 @@
 // ========================================================
-// APP.JS - PRESTIGE COMUNICAÇÃO VISUAL
+// APP.JS FINAL - PRESTIGE COMUNICAÇÃO VISUAL
 // ========================================================
 
 // ===============================
@@ -8,285 +8,313 @@
 window.onload = () => { 
     try {
         carregarDoNavegador();
-
-        // 🔥 Produtos
         popularProdutos();
-
-        const select = document.getElementById("produto");
-        if (select && select.options.length > 0) select.selectedIndex = 0;
-
         toggleMedidas();
-
-        atualizarDataRef();
         atualizarListaOrcamentos();
         atualizarListaPedidos();
         calcularTotais();
-
+        atualizarPreviewDANFE();
     } catch (erro) {
         console.error("Erro ao iniciar sistema:", erro);
     }
 };
 
 // ===============================
-// 📌 FORMATAÇÃO E UTILS
+// 📅 Utilitários
 // ===============================
 function formatarMoeda(valor){
-    return Number(valor).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+    return Number(valor || 0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 }
 
 function dataHoje(){
-    const hoje = new Date();
-    return `${String(hoje.getDate()).padStart(2,'0')}/${String(hoje.getMonth()+1).padStart(2,'0')}/${hoje.getFullYear()}`;
+    const d = new Date();
+    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 }
 
-function gerarNumeroDocumento(tipo) {
-    const hoje = new Date();
-    const dd = String(hoje.getDate()).padStart(2,'0');
-    const mm = String(hoje.getMonth()+1).padStart(2,'0');
-    const yyyy = hoje.getFullYear();
+function gerarNumeroOrcamento(){
+    const d = new Date();
+    const dia = String(d.getDate()).padStart(2,'0');
+    const mes = String(d.getMonth()+1).padStart(2,'0');
+    const ano = String(d.getFullYear());
+    const sequencial = sistema.contadorOrcamento.toString().padStart(4,'0');
+    return `${dia}${mes}${ano}${sequencial}`;
+}
 
-    if(tipo === "orcamento") {
-        sistema.contadorOrcamento = (sistema.contadorOrcamento || 0) + 1;
-        salvarNoNavegador();
-        return `${dd}${mm}${yyyy}${sistema.contadorOrcamento}`;
-    }
-    if(tipo === "pedido") {
-        sistema.contadorPedido = (sistema.contadorPedido || 0) + 1;
-        salvarNoNavegador();
-        return `${dd}${mm}${yyyy}${sistema.contadorPedido}`;
-    }
+function gerarNumeroPedido(){
+    const d = new Date();
+    const dia = String(d.getDate()).padStart(2,'0');
+    const mes = String(d.getMonth()+1).padStart(2,'0');
+    const ano = String(d.getFullYear());
+    const sequencial = (sistema.pedidos.length+1).toString().padStart(4,'0');
+    return `${dia}${mes}${ano}${sequencial}`;
 }
 
 // ===============================
-// 📦 PRODUTOS
+// 🔧 Produtos
 // ===============================
 function cadastrarNovoProduto(){
-    const nome = document.getElementById("novoProdutoNome").value.trim();
-    const preco = Number(document.getElementById("novoProdutoPreco").value);
-    if(nome && preco){
-        sistema.produtos.push({nome, preco, tipo:"unid"});
-        salvarNoNavegador();
-        popularProdutos();
-        document.getElementById("novoProdutoNome").value = "";
-        document.getElementById("novoProdutoPreco").value = "";
-    }
+    const nome = document.getElementById('novoProdNome').value.trim();
+    const preco = Number(document.getElementById('novoProdPreco').value);
+    const tipo = document.getElementById('novoProdTipo').value;
+    if(!nome || !preco) return alert('Informe nome e preço');
+    sistema.produtos.push({nome, preco, tipo});
+    salvarNoNavegador();
+    popularProdutos();
+    document.getElementById('novoProdNome').value='';
+    document.getElementById('novoProdPreco').value='';
 }
 
 function popularProdutos(){
-    const select = document.getElementById("produto");
-    select.innerHTML = '<option value="">Selecione o produto</option>';
+    const sel = document.getElementById('produto');
+    sel.innerHTML='';
     sistema.produtos.forEach((p,i)=>{
-        const opt = document.createElement("option");
-        opt.value = i;
-        opt.textContent = `${p.nome} - ${formatarMoeda(p.preco)} (${p.tipo})`;
-        select.appendChild(opt);
+        const opt = document.createElement('option');
+        opt.value=i;
+        opt.text=p.nome;
+        sel.appendChild(opt);
     });
 }
 
-// ===============================
-// ⚖️ MEDIDAS
-// ===============================
 function toggleMedidas(){
-    const select = document.getElementById("produto");
-    const index = select.value;
-    const produto = sistema.produtos[index];
-    if(produto && produto.tipo === "m2"){
-        document.getElementById("largura").disabled = false;
-        document.getElementById("altura").disabled = false;
-    } else {
-        document.getElementById("largura").disabled = true;
-        document.getElementById("altura").disabled = true;
-    }
+    const idx = document.getElementById('produto').value;
+    const tipo = sistema.produtos[idx]?.tipo;
+    document.getElementById('medidasInput').style.display = tipo==='m2'?'flex':'none';
 }
 
 // ===============================
-// 🧮 CÁLCULO DE PRODUTOS
-// ===============================
-function calcularProduto(){
-    const select = document.getElementById("produto");
-    const index = select.value;
-    const qtd = Number(document.getElementById("quantidade").value);
-    const largura = Number(document.getElementById("largura").value)/100;
-    const altura = Number(document.getElementById("altura").value)/100;
-
-    if(index === "") return 0;
-
-    const produto = sistema.produtos[index];
-    let total = produto.preco * qtd;
-    if(produto.tipo==="m2") total = produto.preco * largura * altura * qtd;
-    return total;
-}
-
-// ===============================
-// 📄 QR CODE PIX
-// ===============================
-function gerarQRCodePIX(valor){
-    return new Promise(resolve=>{
-        const chavePIX="11922018290";
-        const payload=`00020126580014BR.GOV.BCB.PIX0136${chavePIX}52040000530398654${Number(valor).toFixed(2)}5802BR5920Prestige Comunicacao6009Sao Paulo62070503***6304`;
-
-        const div = document.createElement("div");
-        new QRCode(div,{text:payload,width:150,height:150});
-        setTimeout(()=>resolve(div.querySelector("img").src),500);
-    });
-}
-
-// ===============================
-// 🏠 CEP / FRETE
-// ===============================
-async function buscarCEP(cep){
-    const url = `https://viacep.com.br/ws/${cep}/json/`;
-    const resp = await fetch(url);
-    const data = await resp.json();
-    document.getElementById("clienteEndereco").value = data.logradouro || "";
-    document.getElementById("clienteBairro").value = data.bairro || "";
-    document.getElementById("clienteCidade").value = data.localidade || "";
-    document.getElementById("clienteEstado").value = data.uf || "";
-}
-
-function calcularFrete(){
-    const cep = document.getElementById("clienteCEP").value;
-    const cidade = document.getElementById("clienteCidade").value.toLowerCase();
-    const estado = document.getElementById("clienteEstado").value.toLowerCase();
-
-    if(cidade.includes("são paulo") && estado==="sp") return 0;
-    if(["guarulhos","osasco","santo andré","são bernardo do campo","são caetano do sul"].some(c=>cidade.includes(c))) return 20;
-    return 50; // exterior ou interior
-}
-
-// ===============================
-// 🛒 CARRINHO
+// 🛒 Carrinho
 // ===============================
 function adicionarItem(){
-    const select = document.getElementById("produto");
-    const index = select.value;
-    if(index==="") return alert("Selecione um produto");
+    const idx = document.getElementById('produto').value;
+    const produto = sistema.produtos[idx];
+    let qtd = Number(document.getElementById('quantidade').value || 1);
+    let largura = Number(document.getElementById('largura').value || 0);
+    let altura = Number(document.getElementById('altura').value || 0);
+    let medida = produto.tipo==='m2'?`${largura}x${altura} cm`:'--';
+    let total = produto.tipo==='m2'? (largura*altura/10000)*produto.preco*qtd : produto.preco*qtd;
 
-    const produto = sistema.produtos[index];
-    const qtd = Number(document.getElementById("quantidade").value);
-    const largura = Number(document.getElementById("largura").value)/100;
-    const altura = Number(document.getElementById("altura").value)/100;
-    let total = produto.preco * qtd;
-    if(produto.tipo==="m2") total = produto.preco * largura * altura * qtd;
-
-    sistema.carrinho.push({
+    const item = {
         nome: produto.nome,
         qtd,
-        medida: produto.tipo==="m2"? `${document.getElementById("largura").value}x${document.getElementById("altura").value} cm`:"",
+        medida,
         total
-    });
+    };
+    sistema.carrinho.push(item);
     salvarNoNavegador();
     atualizarCarrinho();
 }
 
 function atualizarCarrinho(){
-    const div = document.getElementById("listaItens");
-    div.innerHTML="";
+    const lista = document.getElementById('listaItens');
+    lista.innerHTML='';
     sistema.carrinho.forEach((item,i)=>{
-        const el = document.createElement("div");
-        el.textContent=`${item.nome} - Qtd: ${item.qtd} - Medida: ${item.medida} - Total: ${formatarMoeda(item.total)}`;
-        div.appendChild(el);
+        const div = document.createElement('div');
+        div.textContent = `${item.nome} | Qtd: ${item.qtd} | ${item.medida} | Total: ${formatarMoeda(item.total)}`;
+        const btn = document.createElement('button');
+        btn.textContent='❌';
+        btn.onclick=()=>{ removerItem(i); };
+        div.appendChild(btn);
+        lista.appendChild(div);
     });
+    calcularTotais();
+    atualizarPreviewDANFE();
+}
+
+function removerItem(i){
+    sistema.carrinho.splice(i,1);
+    salvarNoNavegador();
+    atualizarCarrinho();
 }
 
 // ===============================
-// 💰 TOTAIS
+// 💰 Totais e Frete
 // ===============================
 function calcularTotais(){
-    const totalItens = sistema.carrinho.reduce((acc,i)=>acc+i.total,0);
-    const frete = calcularFrete();
-    const totalGeral = totalItens + frete;
-    return {totalItens,frete,totalGeral};
+    let subtotal = sistema.carrinho.reduce((a,b)=>a+b.total,0);
+    let frete = calcularFrete();
+    let forma = document.getElementById('formaPagamento').value;
+    let desconto = 0;
+
+    if(forma==='pix') desconto = subtotal*0.05;
+    if(forma==='credito_1x') subtotal*=1.015;
+    if(forma==='credito_3x') subtotal*=1.06;
+    if(forma==='credito_5x') subtotal*=1.07;
+
+    let totalGeral = subtotal + frete - desconto;
+
+    document.getElementById('frete').textContent = formatarMoeda(frete);
+    document.getElementById('desconto').textContent = formatarMoeda(desconto);
+    document.getElementById('totalGeral').textContent = formatarMoeda(totalGeral);
+    document.getElementById('danfeTotalGeral').textContent = formatarMoeda(totalGeral);
+}
+
+function calcularFrete(){
+    const cep = document.getElementById('clienteCEP').value || '';
+    if(!cep) return 0;
+    if(/^010\d{3}-?\d{3}$/.test(cep)) return 0; // SP Capital
+    if(/^0[1-9]\d{3}-?\d{3}$/.test(cep)) return 15; // Grande SP
+    return 25; // Interior/Outros
 }
 
 // ===============================
-// 📅 DATA / ORÇAMENTO
+// 🏷️ DANFE Preview
 // ===============================
-function atualizarDataRef(){
-    document.getElementById("resultado").textContent=`Data: ${dataHoje()}`;
+function atualizarPreviewDANFE(){
+    const cab = document.getElementById('danfeCabecalho');
+    cab.innerHTML=`
+    <p>ORÇAMENTO Nº: ${sistema.contadorOrcamento}</p>
+    <p>Data: ${dataHoje()}</p>
+    <p>Cliente: ${document.getElementById('clienteNome').value}</p>
+    <p>Endereço: ${document.getElementById('clienteEndereco').value} ${document.getElementById('clienteNumero').value}</p>
+    <p>Bairro: ${document.getElementById('clienteBairro').value}</p>
+    <p>Cidade/UF: ${document.getElementById('clienteCidade').value} / ${document.getElementById('clienteEstado').value}</p>
+    <p>CEP: ${document.getElementById('clienteCEP').value}</p>
+    `;
+    const corpo = document.getElementById('danfeCorpo');
+    corpo.innerHTML='';
+    sistema.carrinho.forEach(item=>{
+        corpo.innerHTML+=`<tr>
+            <td style="border:1px solid #ccc; padding:5px;">${item.nome}</td>
+            <td style="border:1px solid #ccc; padding:5px;">${item.qtd}</td>
+            <td style="border:1px solid #ccc; padding:5px;">${item.medida}</td>
+            <td style="border:1px solid #ccc; padding:5px;">${formatarMoeda(item.total/item.qtd)}</td>
+            <td style="border:1px solid #ccc; padding:5px;">${formatarMoeda(item.total)}</td>
+        </tr>`;
+    });
 }
 
+// ===============================
+// 📦 Orçamento / Pedido
+// ===============================
 function salvarOrcamento(){
-    const cliente = document.getElementById("clienteNome").value;
-    const cep = document.getElementById("clienteCEP").value;
-
-    const total = calcularTotais().totalGeral;
-    const numero = gerarNumeroDocumento("orcamento");
-
-    sistema.orcamentos.push({
+    const numero = gerarNumeroOrcamento();
+    sistema.contadorOrcamento++;
+    const orc = {
         numero,
-        dataCriacao: dataHoje(),
-        cliente,
-        clienteEndereco: document.getElementById("clienteEndereco").value,
-        clienteNumero: document.getElementById("clienteNumero")?.value || "",
-        clienteBairro: document.getElementById("clienteBairro")?.value || "",
-        clienteCidade: document.getElementById("clienteCidade")?.value || "",
-        clienteEstado: document.getElementById("clienteEstado")?.value || "",
-        clienteCEP: cep,
-        status: "Aguardando aprovação",
-        itens: [...sistema.carrinho],
-        total
-    });
-
-    sistema.carrinho = [];
+        data: dataHoje(),
+        clienteNome: document.getElementById('clienteNome').value,
+        clienteEndereco: document.getElementById('clienteEndereco').value,
+        clienteNumero: document.getElementById('clienteNumero').value,
+        clienteBairro: document.getElementById('clienteBairro').value,
+        clienteCidade: document.getElementById('clienteCidade').value,
+        clienteEstado: document.getElementById('clienteEstado').value,
+        clienteCEP: document.getElementById('clienteCEP').value,
+        carrinho: [...sistema.carrinho],
+        status: 'Aguardando aprovação'
+    };
+    sistema.orcamentos.push(orc);
     salvarNoNavegador();
     atualizarListaOrcamentos();
+    alert('Orçamento salvo!');
 }
 
-// ===============================
-// ✅ APROVAÇÃO / PEDIDOS
-// ===============================
-function aprovarOrcamento(index){
-    const o = sistema.orcamentos[index];
-    o.status = "Aprovado";
-    o.dataAprovacao = dataHoje();
+function aprovarOrcamento(numero){
+    const orc = sistema.orcamentos.find(o=>o.numero===numero);
+    if(!orc) return alert('Orçamento não encontrado');
+    orc.status='Aprovado';
+    salvarNoNavegador();
 
-    // Cria pedido automaticamente
-    const numeroPedido = gerarNumeroDocumento("pedido");
-    sistema.pedidos.push({...o, numero: numeroPedido, status:"Em Produção"});
+    // Gerar pedido automático
+    const pedidoNumero = gerarNumeroPedido();
+    const pedido = {
+        numero: pedidoNumero,
+        dataAprovacao: dataHoje(),
+        clienteNome: orc.clienteNome,
+        clienteEndereco: orc.clienteEndereco,
+        clienteNumero: orc.clienteNumero,
+        clienteBairro: orc.clienteBairro,
+        clienteCidade: orc.clienteCidade,
+        clienteEstado: orc.clienteEstado,
+        clienteCEP: orc.clienteCEP,
+        carrinho: [...orc.carrinho],
+        status: 'Produção'
+    };
+    sistema.pedidos.push(pedido);
     salvarNoNavegador();
     atualizarListaOrcamentos();
     atualizarListaPedidos();
+    alert('Orçamento aprovado e pedido gerado!');
 }
 
 // ===============================
-// 📞 WHATSAPP
+// WhatsApp
 // ===============================
-function enviarWhatsApp(index,tipo="orcamento"){
-    const doc = tipo==="orcamento"? sistema.orcamentos[index] : sistema.pedidos[index];
-    let msg = `Olá ${doc.cliente}, segue seu ${tipo} nº ${doc.numero} total ${formatarMoeda(doc.total)}.`;
-    const url = `https://api.whatsapp.com/send?phone=5511922018290&text=${encodeURIComponent(msg)}`;
-    window.open(url,"_blank");
-}
-
-// ===============================
-// 📝 LISTAS / STATUS
-// ===============================
-function atualizarListaOrcamentos(){
-    const div = document.getElementById("listaOrcamentos");
-    div.innerHTML="";
-    sistema.orcamentos.forEach((o,i)=>{
-        const el = document.createElement("div");
-        el.innerHTML=`<b>${o.numero}</b> - ${o.cliente} - ${o.status} <button onclick="aprovarOrcamento(${i})">Aprovar</button> <button onclick="enviarWhatsApp(${i},'orcamento')">WhatsApp</button>`;
-        div.appendChild(el);
+function enviarWhatsApp(){
+    const cliente = document.getElementById('clienteWhatsApp').value.replace(/\D/g,'');
+    if(!cliente) return alert('Informe WhatsApp do cliente');
+    let msg = `Olá ${document.getElementById('clienteNome').value}, segue seu orçamento:\n`;
+    sistema.carrinho.forEach(item=>{
+        msg+=`${item.nome} x${item.qtd} (${item.medida}) - ${formatarMoeda(item.total)}\n`;
     });
+    msg+=`Total: ${document.getElementById('totalGeral').textContent}`;
+    const url = `https://wa.me/55${cliente}?text=${encodeURIComponent(msg)}`;
+    window.open(url,'_blank');
 }
 
-function atualizarListaPedidos(){
-    const div = document.getElementById("listaPedidos");
-    div.innerHTML="";
-    sistema.pedidos.forEach((p,i)=>{
-        const el = document.createElement("div");
-        el.innerHTML=`<b>${p.numero}</b> - ${p.cliente} - ${p.status} <button onclick="enviarWhatsApp(${i},'pedido')">WhatsApp</button>`;
-        div.appendChild(el);
+// ===============================
+// PDF DANFE (Orçamento e Pedido)
+// ===============================
+async function gerarPDFOrcamento(){
+    await gerarPDF(true);
+}
+
+async function gerarPDFPedido(){
+    await gerarPDF(false);
+}
+
+async function gerarPDF(isOrcamento){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p','mm','a4');
+    const dataObj = isOrcamento ? sistema.orcamentos[sistema.orcamentos.length-1] : sistema.pedidos[sistema.pedidos.length-1];
+    let y = 10;
+
+    // Cabeçalho
+    doc.setFontSize(14); doc.text("Prestige Comunicação Visual",10,y); y+=6;
+    doc.setFontSize(10); doc.text("Rua Brasil, 304 - Rudge Ramos - São Bernardo do Campo - SP | PIX: 11922018290",10,y); y+=10;
+
+    // Dados
+    doc.setFontSize(12); doc.text(`${isOrcamento?'ORÇAMENTO':'PEDIDO'} Nº: ${dataObj.numero}`,10,y); y+=5;
+    doc.setFontSize(10); doc.text(`Data: ${dataObj.dataAprovacao||dataObj.data}`,10,y); y+=5;
+    doc.text(`Cliente: ${dataObj.clienteNome}`,10,y); y+=5;
+    doc.text(`Endereço: ${dataObj.clienteEndereco} ${dataObj.clienteNumero}`,10,y); y+=5;
+    doc.text(`Bairro: ${dataObj.clienteBairro}`,10,y); y+=5;
+    doc.text(`Cidade/UF: ${dataObj.clienteCidade} / ${dataObj.clienteEstado}`,10,y); y+=5;
+    doc.text(`CEP: ${dataObj.clienteCEP}`,10,y); y+=10;
+
+    // Tabela
+    doc.setFontSize(10);
+    doc.line(10,y,200,y); y+=2;
+    doc.text("Produto",10,y); doc.text("Qtd",120,y); doc.text("Medida",140,y); doc.text("Valor Unit.",160,y); doc.text("Total",190,y,{align:"right"}); y+=2;
+    doc.line(10,y,200,y); y+=5;
+
+    let totalGeral = 0;
+    dataObj.carrinho.forEach(item=>{
+        const valorUnit = item.total/item.qtd;
+        totalGeral+=item.total;
+        doc.text(item.nome,10,y);
+        doc.text(String(item.qtd),120,y);
+        doc.text(item.medida,140,y);
+        doc.text(formatarMoeda(valorUnit),160,y);
+        doc.text(formatarMoeda(item.total),190,y,{align:"right"});
+        y+=7;
     });
+
+    doc.line(10,y,200,y); y+=5;
+    doc.setFontSize(12); doc.text(`TOTAL GERAL: ${formatarMoeda(totalGeral)}`,200,y,{align:"right"}); y+=15;
+    doc.setFontSize(10); if(isOrcamento) doc.text("Prazo do orçamento: 7 dias úteis",10,y); y+=10;
+
+    const qr = await gerarQRCodePIX(totalGeral);
+    doc.addImage(qr,'PNG',150,y,50,50); y+=55;
+    doc.text("Deus Seja Sempre Louvado! Tudo posso Naquele que me Fortalece!",105,y,{align:"center"});
+    doc.save(`${isOrcamento?'orcamento':'pedido'}_${dataObj.numero}.pdf`);
 }
 
-function proximoStatus(index){
-    const p = sistema.pedidos[index];
-    const statuses = ["Em Produção","Andamento","Entregue"];
-    const idx = statuses.indexOf(p.status);
-    p.status = statuses[(idx+1)%statuses.length];
-    salvarNoNavegador();
-    atualizarListaPedidos();
+async function gerarQRCodePIX(valor){
+    return new Promise(resolve=>{
+        const chavePIX="11922018290";
+        const payload=`00020126580014BR.GOV.BCB.PIX0136${chavePIX}52040000530398654${Number(valor).toFixed(2)}5802BR5920Prestige Comunicacao6009Sao Paulo62070503***6304`;
+        const div=document.createElement("div");
+        new QRCode(div,{text:payload,width:150,height:150});
+        setTimeout(()=>{ resolve(div.querySelector("img").src); },500);
+    });
 }
