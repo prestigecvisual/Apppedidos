@@ -1,167 +1,499 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prestige - Sistema de Pedidos</title>
-<link rel="stylesheet" href="css/style.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="js/db.js"></script>
-<script src="js/app.js" defer></script>
-</head>
-<body>
+// js/app.js
+let produtos = [];
+let carrinho = [];
+let currentOrcamentoId = null;
+let qrcodeInstance = null;
 
-<header style="background: #1e293b; color: white; padding: 20px 0; border-bottom: 4px solid #3b82f6;">
-<div style="max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center;">
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <img src="img/logo.png" class="logo-img" style="height:60px;">
-        <div>
-            <h1 style="margin: 0;">Prestige Comunicação Visual</h1>
-            <p style="font-size: 0.85em;">Rua Brasil, 304 - Rudge Ramos - São Bernardo do Campo - SP | (11) 92201-8290</p>
+// Produtos padrão
+const produtosPadrao = [
+    { nome: "Adesivo Vinil (corte)", preco: 25.00, tipo: "m2" },
+    { nome: "Adesivo Digital", preco: 35.00, tipo: "m2" },
+    { nome: "Lona", preco: 28.00, tipo: "m2" },
+    { nome: "Banner", preco: 32.00, tipo: "m2" },
+    { nome: "Placa de PVC", preco: 45.00, tipo: "m2" },
+    { nome: "Placa ACM", preco: 65.00, tipo: "m2" },
+    { nome: "Cartão de Visita (1000un)", preco: 89.90, tipo: "unid" },
+    { nome: "Flyer A4 (1000un)", preco: 199.90, tipo: "unid" },
+    { nome: "Envelope (100un)", preco: 49.90, tipo: "unid" },
+    { nome: "Letra Caixa (por cm)", preco: 2.50, tipo: "unid" },
+    { nome: "Totem", preco: 850.00, tipo: "unid" },
+    { nome: "Faixa de PVC", preco: 12.00, tipo: "unid" }
+];
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', async () => {
+    await openDB();
+    await inicializarProdutos();
+    await carregarProdutosSelect();
+    await carregarOrcamentos();
+    await carregarPedidos();
+    gerarNumeroOrcamento();
+    atualizarPreview();
+});
+
+async function inicializarProdutos() {
+    const existing = await getProdutos();
+    if (existing.length === 0) {
+        for (const p of produtosPadrao) {
+            await addProduto(p);
+        }
+    }
+    produtos = await getProdutos();
+}
+
+async function carregarProdutosSelect() {
+    produtos = await getProdutos();
+    const select = document.getElementById('produto');
+    select.innerHTML = '<option value="">Selecione um produto</option>';
+    produtos.forEach(prod => {
+        const option = document.createElement('option');
+        option.value = prod.id;
+        option.textContent = `${prod.nome} - R$ ${prod.preco.toFixed(2)}/${prod.tipo === 'm2' ? 'm²' : 'un'}`;
+        select.appendChild(option);
+    });
+}
+
+function toggleMedidas() {
+    const select = document.getElementById('produto');
+    const produtoId = parseInt(select.value);
+    const produto = produtos.find(p => p.id === produtoId);
+    const medidasDiv = document.getElementById('medidasInput');
+    
+    if (produto && produto.tipo === 'm2') {
+        medidasDiv.style.display = 'flex';
+    } else {
+        medidasDiv.style.display = 'none';
+    }
+    calcularPreview();
+}
+
+function calcularPreview() {
+    const select = document.getElementById('produto');
+    const produtoId = parseInt(select.value);
+    const produto = produtos.find(p => p.id === produtoId);
+    const quantidade = parseFloat(document.getElementById('quantidade').value) || 1;
+    
+    if (!produto) {
+        document.getElementById('previewCalculo').innerHTML = '';
+        return;
+    }
+    
+    let area = 1;
+    if (produto.tipo === 'm2') {
+        const largura = parseFloat(document.getElementById('largura').value) || 0;
+        const altura = parseFloat(document.getElementById('altura').value) || 0;
+        area = (largura * altura) / 10000;
+        if (area <= 0) area = 1;
+    }
+    
+    const valorUnitario = produto.preco * area;
+    const total = valorUnitario * quantidade;
+    
+    document.getElementById('previewCalculo').innerHTML = `
+        <strong>Prévia:</strong> ${produto.nome}<br>
+        ${produto.tipo === 'm2' ? `Área: ${area.toFixed(2)}m²<br>` : ''}
+        Valor Unitário: R$ ${valorUnitario.toFixed(2)}<br>
+        Total: R$ ${total.toFixed(2)}
+    `;
+}
+
+function adicionarItem() {
+    const select = document.getElementById('produto');
+    const produtoId = parseInt(select.value);
+    const produto = produtos.find(p => p.id === produtoId);
+    
+    if (!produto) {
+        alert('Selecione um produto');
+        return;
+    }
+    
+    const quantidade = parseFloat(document.getElementById('quantidade').value) || 1;
+    let largura = null, altura = null, area = 1;
+    
+    if (produto.tipo === 'm2') {
+        largura = parseFloat(document.getElementById('largura').value) || 0;
+        altura = parseFloat(document.getElementById('altura').value) || 0;
+        area = (largura * altura) / 10000;
+        if (area <= 0) {
+            alert('Informe largura e altura válidas');
+            return;
+        }
+    }
+    
+    const valorUnitario = produto.preco * area;
+    const total = valorUnitario * quantidade;
+    
+    carrinho.push({
+        id: Date.now(),
+        produtoId: produto.id,
+        nome: produto.nome,
+        quantidade: quantidade,
+        largura: largura,
+        altura: altura,
+        area: area,
+        valorUnitario: valorUnitario,
+        total: total,
+        tipo: produto.tipo
+    });
+    
+    // Limpar campos
+    document.getElementById('quantidade').value = '1';
+    if (produto.tipo === 'm2') {
+        document.getElementById('largura').value = '';
+        document.getElementById('altura').value = '';
+    }
+    select.value = '';
+    document.getElementById('medidasInput').style.display = 'none';
+    document.getElementById('previewCalculo').innerHTML = '';
+    
+    atualizarListaItens();
+    atualizarPreview();
+    calcularTotais();
+}
+
+function atualizarListaItens() {
+    const container = document.getElementById('listaItens');
+    
+    if (carrinho.length === 0) {
+        container.innerHTML = '<p style="color: #666;">Nenhum item adicionado</p>';
+        return;
+    }
+    
+    container.innerHTML = carrinho.map(item => `
+        <div class="item-carrinho">
+            <div class="item-carrinho-info">
+                <strong>${item.nome}</strong><br>
+                ${item.tipo === 'm2' ? `${item.largura}cm x ${item.altura}cm = ${item.area.toFixed(2)}m²<br>` : ''}
+                Qtd: ${item.quantidade} | Unit: R$ ${item.valorUnitario.toFixed(2)} | Total: R$ ${item.total.toFixed(2)}
+            </div>
+            <div class="item-carrinho-actions">
+                <button onclick="editarItem(${item.id})" class="warning">✏️</button>
+                <button onclick="removerItem(${item.id})" class="danger">🗑️</button>
+            </div>
         </div>
-    </div>
-    <div>
-        <p>Ref: <span id="numeroOrcamento">------</span></p>
-    </div>
-</div>
-</header>
+    `).join('');
+}
 
-<main style="max-width: 1200px; margin: 30px auto; display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 30px;">
-<!-- ESQUERDA -->
-<div>
+function removerItem(id) {
+    carrinho = carrinho.filter(item => item.id !== id);
+    atualizarListaItens();
+    atualizarPreview();
+    calcularTotais();
+}
 
-<!-- CLIENTE -->
-<section class="card">
-    <h3>Cliente</h3>
-    <input type="text" id="clienteNome" placeholder="Nome">
-    <input type="text" id="clienteDoc" placeholder="CPF/CNPJ">
-    <input type="text" id="clienteTelefone" placeholder="Telefone">
-    <input type="text" id="clienteWhatsApp" placeholder="WhatsApp (com DDD)">
-    <input type="text" id="clienteCEP" placeholder="CEP" onblur="buscarCEP()">
-    <input type="text" id="clienteEndereco" placeholder="Rua">
-    <input type="text" id="clienteNumero" placeholder="Número">
-    <input type="text" id="clienteBairro" placeholder="Bairro">
-    <input type="text" id="clienteCidade" placeholder="Cidade">
-    <input type="text" id="clienteEstado" placeholder="Estado">
-</section>
+function editarItem(id) {
+    const item = carrinho.find(i => i.id === id);
+    if (!item) return;
+    
+    const novaQtd = prompt('Nova quantidade:', item.quantidade);
+    if (novaQtd && !isNaN(novaQtd)) {
+        item.quantidade = parseFloat(novaQtd);
+        item.total = item.valorUnitario * item.quantidade;
+        atualizarListaItens();
+        atualizarPreview();
+        calcularTotais();
+    }
+}
 
-<!-- CALCULADORA -->
-<section class="card">
-<h3>Adicionar Produto</h3>
-<select id="produto" onchange="toggleMedidas()"></select>
-<div id="medidasInput" style="display:none; gap:5px;">
-    <input type="number" id="largura" placeholder="Largura (cm)">
-    <input type="number" id="altura" placeholder="Altura (cm)">
-</div>
-<input type="number" id="quantidade" placeholder="Quantidade" value="1">
-<button onclick="adicionarItem()">Adicionar ao Carrinho</button>
-<p id="previewCalculo"></p>
-</section>
+function calcularTotais() {
+    let subtotal = carrinho.reduce((sum, item) => sum + item.total, 0);
+    const formaPagamento = document.getElementById('formaPagamento').value;
+    let multiplicador = 1;
+    
+    switch(formaPagamento) {
+        case 'pix': multiplicador = 0.95; break;
+        case 'debito': multiplicador = 1; break;
+        case 'credito_1x': multiplicador = 1.015; break;
+        case 'credito_3x': multiplicador = 1.06; break;
+        case 'credito_5x': multiplicador = 1.07; break;
+    }
+    
+    const frete = 0;
+    const desconto = 0;
+    let total = subtotal * multiplicador + frete - desconto;
+    
+    document.getElementById('frete').innerText = frete.toFixed(2);
+    document.getElementById('desconto').innerText = desconto.toFixed(2);
+    document.getElementById('totalGeral').innerText = total.toFixed(2);
+    
+    return { subtotal, total, multiplicador };
+}
 
-<!-- NOVO PRODUTO -->
-<section class="card">
-<h3>+ Novo Produto</h3>
-<input type="text" id="novoProdNome" placeholder="Nome">
-<input type="number" id="novoProdPreco" placeholder="Preço">
-<select id="novoProdTipo">
-    <option value="unid">Unidade</option>
-    <option value="m2">m²</option>
-</select>
-<button onclick="cadastrarNovoProduto()">Salvar</button>
-</section>
+function atualizarPreview() {
+    const cliente = {
+        nome: document.getElementById('clienteNome').value,
+        doc: document.getElementById('clienteDoc').value,
+        telefone: document.getElementById('clienteTelefone').value,
+        endereco: document.getElementById('clienteEndereco').value
+    };
+    
+    document.getElementById('danfeCabecalho').innerHTML = `
+        <strong>Cliente:</strong> ${cliente.nome || '---'}<br>
+        <strong>CPF/CNPJ:</strong> ${cliente.doc || '---'}<br>
+        <strong>Telefone:</strong> ${cliente.telefone || '---'}<br>
+        <strong>Endereço:</strong> ${cliente.endereco || '---'}
+    `;
+    
+    const tbody = document.getElementById('danfeCorpo');
+    tbody.innerHTML = carrinho.map(item => `
+        <tr>
+            <td style="border:1px solid #ccc; padding:5px;">${item.nome}${item.tipo === 'm2' ? `<br><small>${item.largura}x${item.altura}cm</small>` : ''}</td>
+            <td style="border:1px solid #ccc; padding:5px;">${item.quantidade}</td>
+            <td style="border:1px solid #ccc; padding:5px;">${item.tipo === 'm2' ? `${item.area.toFixed(2)}m²` : '-'}</td>
+            <td style="border:1px solid #ccc; padding:5px;">R$ ${item.valorUnitario.toFixed(2)}</td>
+            <td style="border:1px solid #ccc; padding:5px;">R$ ${item.total.toFixed(2)}</td>
+        </tr>
+    `).join('');
+    
+    const total = carrinho.reduce((sum, item) => sum + item.total, 0);
+    document.getElementById('danfeTotalGeral').innerHTML = `R$ ${total.toFixed(2)}`;
+}
 
-</div>
+function gerarNumeroOrcamento() {
+    const num = 'ORC-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+    document.getElementById('numeroOrcamento').innerText = num;
+    return num;
+}
 
-<!-- DIREITA -->
-<div>
+function buscarCEP() {
+    const cep = document.getElementById('clienteCEP').value.replace(/\D/g, '');
+    if (cep.length !== 8) return;
+    
+    fetch(`https://viacep.com.br/ws/${cep}/json/`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.erro) {
+                document.getElementById('clienteEndereco').value = data.logradouro || '';
+                document.getElementById('clienteBairro').value = data.bairro || '';
+                document.getElementById('clienteCidade').value = data.localidade || '';
+                document.getElementById('clienteEstado').value = data.uf || '';
+            }
+        })
+        .catch(error => console.error('Erro ao buscar CEP:', error));
+}
 
-<!-- RESUMO -->
-<section class="card">
-<h3>Resumo</h3>
+async function salvarOrcamento() {
+    if (carrinho.length === 0) {
+        alert('Adicione itens ao carrinho');
+        return;
+    }
+    
+    const { total } = calcularTotais();
+    const numero = gerarNumeroOrcamento();
+    
+    const orcamento = {
+        numero: numero,
+        data: new Date().toISOString(),
+        cliente: {
+            nome: document.getElementById('clienteNome').value,
+            doc: document.getElementById('clienteDoc').value,
+            telefone: document.getElementById('clienteTelefone').value,
+            whatsapp: document.getElementById('clienteWhatsApp').value,
+            cep: document.getElementById('clienteCEP').value,
+            endereco: document.getElementById('clienteEndereco').value,
+            numero: document.getElementById('clienteNumero').value,
+            bairro: document.getElementById('clienteBairro').value,
+            cidade: document.getElementById('clienteCidade').value,
+            estado: document.getElementById('clienteEstado').value
+        },
+        itens: [...carrinho],
+        total: total,
+        formaPagamento: document.getElementById('formaPagamento').value,
+        status: 'pendente'
+    };
+    
+    await saveOrcamento(orcamento);
+    alert(`Orçamento ${numero} salvo com sucesso!`);
+    await carregarOrcamentos();
+    limparFormulario();
+}
 
-<!-- Lista de Itens no Carrinho -->
-<div id="listaItens"></div>
+function limparFormulario() {
+    carrinho = [];
+    atualizarListaItens();
+    atualizarPreview();
+    calcularTotais();
+    gerarNumeroOrcamento();
+    
+    document.getElementById('clienteNome').value = '';
+    document.getElementById('clienteDoc').value = '';
+    document.getElementById('clienteTelefone').value = '';
+    document.getElementById('clienteWhatsApp').value = '';
+    document.getElementById('clienteCEP').value = '';
+    document.getElementById('clienteEndereco').value = '';
+    document.getElementById('clienteNumero').value = '';
+    document.getElementById('clienteBairro').value = '';
+    document.getElementById('clienteCidade').value = '';
+    document.getElementById('clienteEstado').value = '';
+}
 
-<!-- Preview estilo DANFE -->
-<div id="previewDANFE" style="border:1px solid #ccc; padding:10px; margin-top:15px;">
-    <h4>Pré-Visualização do Orçamento (DANFE)</h4>
-    <div id="danfeCabecalho" style="margin-bottom:10px;"></div>
-    <table id="danfeTabela" style="width:100%; border-collapse: collapse;">
-        <thead>
-            <tr style="background:#f3f3f3;">
-                <th style="border:1px solid #ccc; padding:5px;">Produto</th>
-                <th style="border:1px solid #ccc; padding:5px;">Qtd</th>
-                <th style="border:1px solid #ccc; padding:5px;">Medida</th>
-                <th style="border:1px solid #ccc; padding:5px;">Valor Unit.</th>
-                <th style="border:1px solid #ccc; padding:5px;">Total</th>
-            </tr>
-        </thead>
-        <tbody id="danfeCorpo"></tbody>
-        <tfoot>
-            <tr>
-                <td colspan="4" style="border:1px solid #ccc; padding:5px; text-align:right;">TOTAL GERAL:</td>
-                <td style="border:1px solid #ccc; padding:5px; text-align:right;" id="danfeTotalGeral">R$ 0.00</td>
-            </tr>
-        </tfoot>
-    </table>
+async function carregarOrcamentos() {
+    const orcamentos = await getOrcamentos();
+    const container = document.getElementById('listaOrcamentos');
+    
+    if (orcamentos.length === 0) {
+        container.innerHTML = '<p>Nenhum orçamento cadastrado</p>';
+        return;
+    }
+    
+    container.innerHTML = orcamentos.map(orc => `
+        <div class="orcamento-item" onclick="abrirOrcamento(${orc.id})">
+            <div class="cliente">${orc.cliente.nome || 'Cliente não informado'}</div>
+            <div>Nº: ${orc.numero}</div>
+            <div class="total">Total: R$ ${orc.total.toFixed(2)}</div>
+            <div><span class="status status-${orc.status}">${getStatusText(orc.status)}</span></div>
+            <small>${new Date(orc.data).toLocaleDateString()}</small>
+            <div style="margin-top: 5px;">
+                <button onclick="event.stopPropagation(); converterParaPedido(${orc.id})" class="success" style="font-size: 11px; padding: 4px 8px;">▶ Iniciar Produção</button>
+            </div>
+        </div>
+    `).join('');
+}
 
-    <!-- Observações -->
-    <p id="danfeObservacao" style="margin-top:10px;"><strong>Observação:</strong> Prazo do orçamento: 7 dias úteis.</p>
+function getStatusText(status) {
+    const statusMap = {
+        'pendente': 'Pendente',
+        'aprovado': 'Aprovado',
+        'producao': 'Em Produção',
+        'andamento': 'Em Andamento',
+        'finalizado': 'Finalizado',
+        'entregue': 'Entregue'
+    };
+    return statusMap[status] || status;
+}
 
-    <!-- QR PIX -->
-    <div id="danfeQRCode" style="margin-top:10px;"></div>
+async function converterParaPedido(orcamentoId) {
+    const orcamentos = await getOrcamentos();
+    const orcamento = orcamentos.find(o => o.id === orcamentoId);
+    
+    if (!orcamento) return;
+    
+    const pedido = {
+        orcamentoId: orcamento.id,
+        numeroOrcamento: orcamento.numero,
+        cliente: orcamento.cliente,
+        itens: orcamento.itens,
+        total: orcamento.total,
+        dataCriacao: new Date().toISOString(),
+        status: 'producao'
+    };
+    
+    await savePedido(pedido);
+    await updateOrcamento(orcamentoId, { status: 'aprovado' });
+    await carregarOrcamentos();
+    await carregarPedidos();
+    alert('Pedido criado com sucesso!');
+}
 
-    <!-- Frase Final -->
-    <p style="text-align:center; margin-top:15px;">Deus Seja Sempre Louvado! Tudo posso Naquele que me Fortalece!</p>
-</div>
+async function carregarPedidos() {
+    const pedidos = await getPedidos();
+    
+    const colProducao = document.getElementById('col-producao');
+    const colAndamento = document.getElementById('col-andamento');
+    const colFinalizado = document.getElementById('col-finalizado');
+    const colEntregue = document.getElementById('col-entregue');
+    
+    colProducao.innerHTML = '';
+    colAndamento.innerHTML = '';
+    colFinalizado.innerHTML = '';
+    colEntregue.innerHTML = '';
+    
+    pedidos.forEach(pedido => {
+        const card = document.createElement('div');
+        card.className = 'pedido-card';
+        card.innerHTML = `
+            <div class="cliente">${pedido.cliente.nome || 'Cliente'}</div>
+            <div>Orçamento: ${pedido.numeroOrcamento}</div>
+            <div>Total: R$ ${pedido.total.toFixed(2)}</div>
+            <div style="margin-top: 8px;">
+                <button onclick="mudarStatusPedido(${pedido.id}, 'producao')" class="warning" style="font-size: 10px; padding: 3px 6px;">🟡 Produção</button>
+                <button onclick="mudarStatusPedido(${pedido.id}, 'andamento')" class="warning" style="font-size: 10px; padding: 3px 6px;">🔵 Andamento</button>
+                <button onclick="mudarStatusPedido(${pedido.id}, 'finalizado')" class="success" style="font-size: 10px; padding: 3px 6px;">🟢 Finalizar</button>
+                <button onclick="mudarStatusPedido(${pedido.id}, 'entregue')" class="success" style="font-size: 10px; padding: 3px 6px;">⚫ Entregar</button>
+            </div>
+        `;
+        
+        switch(pedido.status) {
+            case 'producao': colProducao.appendChild(card); break;
+            case 'andamento': colAndamento.appendChild(card); break;
+            case 'finalizado': colFinalizado.appendChild(card); break;
+            case 'entregue': colEntregue.appendChild(card); break;
+            default: colProducao.appendChild(card);
+        }
+    });
+}
 
-<!-- Forma de Pagamento e Totais -->
-<select id="formaPagamento" onchange="calcularTotais()">
-    <option value="pix">PIX (-5%)</option>
-    <option value="debito">Débito</option>
-    <option value="credito_1x">1x (+1,5%)</option>
-    <option value="credito_3x">3x (+6%)</option>
-    <option value="credito_5x">5x (+7%)</option>
-</select>
-<p>Frete: R$ <span id="frete">0.00</span></p>
-<p>Taxa/Desc: R$ <span id="desconto">0.00</span></p>
-<h3>Total: R$ <span id="totalGeral">0.00</span></h3>
-<button onclick="salvarOrcamento()">Salvar Orçamento</button>
-<button onclick="enviarWhatsApp()">WhatsApp</button>
-</section>
+async function mudarStatusPedido(pedidoId, novoStatus) {
+    await updatePedido(pedidoId, { status: novoStatus });
+    await carregarPedidos();
+}
 
-<!-- ORÇAMENTOS -->
-<section class="card">
-<h3>📄 Orçamentos</h3>
-<div id="listaOrcamentos"></div>
-</section>
+async function cadastrarNovoProduto() {
+    const nome = document.getElementById('novoProdNome').value;
+    const preco = parseFloat(document.getElementById('novoProdPreco').value);
+    const tipo = document.getElementById('novoProdTipo').value;
+    
+    if (!nome || !preco) {
+        alert('Preencha nome e preço do produto');
+        return;
+    }
+    
+    await addProduto({ nome, preco, tipo });
+    await carregarProdutosSelect();
+    
+    document.getElementById('novoProdNome').value = '';
+    document.getElementById('novoProdPreco').value = '';
+    alert('Produto cadastrado com sucesso!');
+}
 
-<!-- PEDIDOS -->
-<section class="card">
-<h3>🏭 Produção / Pedidos</h3>
-<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
-    <div class="card">
-        <h4>🟡 Produção</h4>
-        <div id="col-producao"></div>
-    </div>
-    <div class="card">
-        <h4>🔵 Em Andamento</h4>
-        <div id="col-andamento"></div>
-    </div>
-    <div class="card">
-        <h4>🟢 Finalizado</h4>
-        <div id="col-finalizado"></div>
-    </div>
-    <div class="card">
-        <h4>⚫ Entregue</h4>
-        <div id="col-entregue"></div>
-    </div>
-</div>
-</section>
+function enviarWhatsApp() {
+    const clienteNome = document.getElementById('clienteNome').value;
+    const total = document.getElementById('totalGeral').innerText;
+    const numeroOrc = document.getElementById('numeroOrcamento').innerText;
+    
+    let mensagem = `*PRESTIGE COMUNICAÇÃO VISUAL*\n\n`;
+    mensagem += `Olá ${clienteNome || 'cliente'}!\n`;
+    mensagem += `Segue seu orçamento nº ${numeroOrc}\n\n`;
+    mensagem += `*ITENS DO ORÇAMENTO:*\n`;
+    
+    carrinho.forEach(item => {
+        mensagem += `\n📦 ${item.nome}\n`;
+        if (item.tipo === 'm2') {
+            mensagem += `   Medidas: ${item.largura}cm x ${item.altura}cm (${item.area.toFixed(2)}m²)\n`;
+        }
+        mensagem += `   Quantidade: ${item.quantidade}\n`;
+        mensagem += `   Valor Unitário: R$ ${item.valorUnitario.toFixed(2)}\n`;
+        mensagem += `   Subtotal: R$ ${item.total.toFixed(2)}\n`;
+    });
+    
+    mensagem += `\n*TOTAL: R$ ${total}*\n\n`;
+    mensagem += `Forma de pagamento: ${document.getElementById('formaPagamento').options[document.getElementById('formaPagamento').selectedIndex]?.text}\n\n`;
+    mensagem += `Prazo do orçamento: 7 dias úteis\n`;
+    mensagem += `Rua Brasil, 304 - Rudge Ramos - SBC - SP\n`;
+    mensagem += `(11) 92201-8290\n\n`;
+    mensagem += `Deus Seja Sempre Louvado! 🙏`;
+    
+    const whatsappNumber = document.getElementById('clienteWhatsApp').value.replace(/\D/g, '');
+    const url = `https://wa.me/55${whatsappNumber || '11922018290'}?text=${encodeURIComponent(mensagem)}`;
+    window.open(url, '_blank');
+}
 
-</div>
-</main>
+function abrirOrcamento(id) {
+    // Implementar visualização detalhada do orçamento
+    alert(`Abrir detalhes do orçamento ${id}`);
+}
 
-</body>
-</html>
+// Adicionar ao window para acesso global
+window.adicionarItem = adicionarItem;
+window.removerItem = removerItem;
+window.editarItem = editarItem;
+window.calcularTotais = calcularTotais;
+window.salvarOrcamento = salvarOrcamento;
+window.enviarWhatsApp = enviarWhatsApp;
+window.buscarCEP = buscarCEP;
+window.toggleMedidas = toggleMedidas;
+window.calcularPreview = calcularPreview;
+window.cadastrarNovoProduto = cadastrarNovoProduto;
+window.converterParaPedido = converterParaPedido;
+window.mudarStatusPedido = mudarStatusPedido;
+window.abrirOrcamento = abrirOrcamento;
