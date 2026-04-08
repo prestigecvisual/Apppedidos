@@ -1,499 +1,317 @@
-// js/app.js
-let produtos = [];
-let carrinho = [];
-let currentOrcamentoId = null;
-let qrcodeInstance = null;
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Prestige - Sistema de Orçamentos e Pedidos</title>
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Bibliotecas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <!-- Scripts do sistema -->
+    <script src="js/db.js"></script>
+    <script src="js/app.js" defer></script>
+</head>
+<body>
 
-// Produtos padrão
-const produtosPadrao = [
-    { nome: "Adesivo Vinil (corte)", preco: 25.00, tipo: "m2" },
-    { nome: "Adesivo Digital", preco: 35.00, tipo: "m2" },
-    { nome: "Lona", preco: 28.00, tipo: "m2" },
-    { nome: "Banner", preco: 32.00, tipo: "m2" },
-    { nome: "Placa de PVC", preco: 45.00, tipo: "m2" },
-    { nome: "Placa ACM", preco: 65.00, tipo: "m2" },
-    { nome: "Cartão de Visita (1000un)", preco: 89.90, tipo: "unid" },
-    { nome: "Flyer A4 (1000un)", preco: 199.90, tipo: "unid" },
-    { nome: "Envelope (100un)", preco: 49.90, tipo: "unid" },
-    { nome: "Letra Caixa (por cm)", preco: 2.50, tipo: "unid" },
-    { nome: "Totem", preco: 850.00, tipo: "unid" },
-    { nome: "Faixa de PVC", preco: 12.00, tipo: "unid" }
-];
-
-// Inicialização
-document.addEventListener('DOMContentLoaded', async () => {
-    await openDB();
-    await inicializarProdutos();
-    await carregarProdutosSelect();
-    await carregarOrcamentos();
-    await carregarPedidos();
-    gerarNumeroOrcamento();
-    atualizarPreview();
-});
-
-async function inicializarProdutos() {
-    const existing = await getProdutos();
-    if (existing.length === 0) {
-        for (const p of produtosPadrao) {
-            await addProduto(p);
-        }
-    }
-    produtos = await getProdutos();
-}
-
-async function carregarProdutosSelect() {
-    produtos = await getProdutos();
-    const select = document.getElementById('produto');
-    select.innerHTML = '<option value="">Selecione um produto</option>';
-    produtos.forEach(prod => {
-        const option = document.createElement('option');
-        option.value = prod.id;
-        option.textContent = `${prod.nome} - R$ ${prod.preco.toFixed(2)}/${prod.tipo === 'm2' ? 'm²' : 'un'}`;
-        select.appendChild(option);
-    });
-}
-
-function toggleMedidas() {
-    const select = document.getElementById('produto');
-    const produtoId = parseInt(select.value);
-    const produto = produtos.find(p => p.id === produtoId);
-    const medidasDiv = document.getElementById('medidasInput');
-    
-    if (produto && produto.tipo === 'm2') {
-        medidasDiv.style.display = 'flex';
-    } else {
-        medidasDiv.style.display = 'none';
-    }
-    calcularPreview();
-}
-
-function calcularPreview() {
-    const select = document.getElementById('produto');
-    const produtoId = parseInt(select.value);
-    const produto = produtos.find(p => p.id === produtoId);
-    const quantidade = parseFloat(document.getElementById('quantidade').value) || 1;
-    
-    if (!produto) {
-        document.getElementById('previewCalculo').innerHTML = '';
-        return;
-    }
-    
-    let area = 1;
-    if (produto.tipo === 'm2') {
-        const largura = parseFloat(document.getElementById('largura').value) || 0;
-        const altura = parseFloat(document.getElementById('altura').value) || 0;
-        area = (largura * altura) / 10000;
-        if (area <= 0) area = 1;
-    }
-    
-    const valorUnitario = produto.preco * area;
-    const total = valorUnitario * quantidade;
-    
-    document.getElementById('previewCalculo').innerHTML = `
-        <strong>Prévia:</strong> ${produto.nome}<br>
-        ${produto.tipo === 'm2' ? `Área: ${area.toFixed(2)}m²<br>` : ''}
-        Valor Unitário: R$ ${valorUnitario.toFixed(2)}<br>
-        Total: R$ ${total.toFixed(2)}
-    `;
-}
-
-function adicionarItem() {
-    const select = document.getElementById('produto');
-    const produtoId = parseInt(select.value);
-    const produto = produtos.find(p => p.id === produtoId);
-    
-    if (!produto) {
-        alert('Selecione um produto');
-        return;
-    }
-    
-    const quantidade = parseFloat(document.getElementById('quantidade').value) || 1;
-    let largura = null, altura = null, area = 1;
-    
-    if (produto.tipo === 'm2') {
-        largura = parseFloat(document.getElementById('largura').value) || 0;
-        altura = parseFloat(document.getElementById('altura').value) || 0;
-        area = (largura * altura) / 10000;
-        if (area <= 0) {
-            alert('Informe largura e altura válidas');
-            return;
-        }
-    }
-    
-    const valorUnitario = produto.preco * area;
-    const total = valorUnitario * quantidade;
-    
-    carrinho.push({
-        id: Date.now(),
-        produtoId: produto.id,
-        nome: produto.nome,
-        quantidade: quantidade,
-        largura: largura,
-        altura: altura,
-        area: area,
-        valorUnitario: valorUnitario,
-        total: total,
-        tipo: produto.tipo
-    });
-    
-    // Limpar campos
-    document.getElementById('quantidade').value = '1';
-    if (produto.tipo === 'm2') {
-        document.getElementById('largura').value = '';
-        document.getElementById('altura').value = '';
-    }
-    select.value = '';
-    document.getElementById('medidasInput').style.display = 'none';
-    document.getElementById('previewCalculo').innerHTML = '';
-    
-    atualizarListaItens();
-    atualizarPreview();
-    calcularTotais();
-}
-
-function atualizarListaItens() {
-    const container = document.getElementById('listaItens');
-    
-    if (carrinho.length === 0) {
-        container.innerHTML = '<p style="color: #666;">Nenhum item adicionado</p>';
-        return;
-    }
-    
-    container.innerHTML = carrinho.map(item => `
-        <div class="item-carrinho">
-            <div class="item-carrinho-info">
-                <strong>${item.nome}</strong><br>
-                ${item.tipo === 'm2' ? `${item.largura}cm x ${item.altura}cm = ${item.area.toFixed(2)}m²<br>` : ''}
-                Qtd: ${item.quantidade} | Unit: R$ ${item.valorUnitario.toFixed(2)} | Total: R$ ${item.total.toFixed(2)}
-            </div>
-            <div class="item-carrinho-actions">
-                <button onclick="editarItem(${item.id})" class="warning">✏️</button>
-                <button onclick="removerItem(${item.id})" class="danger">🗑️</button>
+<!-- ============================================ -->
+<!-- HEADER / CABEÇALHO                            -->
+<!-- ============================================ -->
+<header class="main-header">
+    <div class="header-container">
+        <div class="logo-area">
+            <img src="img/logo.png" alt="Prestige Logo" class="logo-img" onerror="this.style.display='none'">
+            <div class="header-info">
+                <h1>Prestige Comunicação Visual</h1>
+                <p>Rua Brasil, 304 - Rudge Ramos - São Bernardo do Campo - SP | (11) 92201-8290</p>
             </div>
         </div>
-    `).join('');
-}
-
-function removerItem(id) {
-    carrinho = carrinho.filter(item => item.id !== id);
-    atualizarListaItens();
-    atualizarPreview();
-    calcularTotais();
-}
-
-function editarItem(id) {
-    const item = carrinho.find(i => i.id === id);
-    if (!item) return;
-    
-    const novaQtd = prompt('Nova quantidade:', item.quantidade);
-    if (novaQtd && !isNaN(novaQtd)) {
-        item.quantidade = parseFloat(novaQtd);
-        item.total = item.valorUnitario * item.quantidade;
-        atualizarListaItens();
-        atualizarPreview();
-        calcularTotais();
-    }
-}
-
-function calcularTotais() {
-    let subtotal = carrinho.reduce((sum, item) => sum + item.total, 0);
-    const formaPagamento = document.getElementById('formaPagamento').value;
-    let multiplicador = 1;
-    
-    switch(formaPagamento) {
-        case 'pix': multiplicador = 0.95; break;
-        case 'debito': multiplicador = 1; break;
-        case 'credito_1x': multiplicador = 1.015; break;
-        case 'credito_3x': multiplicador = 1.06; break;
-        case 'credito_5x': multiplicador = 1.07; break;
-    }
-    
-    const frete = 0;
-    const desconto = 0;
-    let total = subtotal * multiplicador + frete - desconto;
-    
-    document.getElementById('frete').innerText = frete.toFixed(2);
-    document.getElementById('desconto').innerText = desconto.toFixed(2);
-    document.getElementById('totalGeral').innerText = total.toFixed(2);
-    
-    return { subtotal, total, multiplicador };
-}
-
-function atualizarPreview() {
-    const cliente = {
-        nome: document.getElementById('clienteNome').value,
-        doc: document.getElementById('clienteDoc').value,
-        telefone: document.getElementById('clienteTelefone').value,
-        endereco: document.getElementById('clienteEndereco').value
-    };
-    
-    document.getElementById('danfeCabecalho').innerHTML = `
-        <strong>Cliente:</strong> ${cliente.nome || '---'}<br>
-        <strong>CPF/CNPJ:</strong> ${cliente.doc || '---'}<br>
-        <strong>Telefone:</strong> ${cliente.telefone || '---'}<br>
-        <strong>Endereço:</strong> ${cliente.endereco || '---'}
-    `;
-    
-    const tbody = document.getElementById('danfeCorpo');
-    tbody.innerHTML = carrinho.map(item => `
-        <tr>
-            <td style="border:1px solid #ccc; padding:5px;">${item.nome}${item.tipo === 'm2' ? `<br><small>${item.largura}x${item.altura}cm</small>` : ''}</td>
-            <td style="border:1px solid #ccc; padding:5px;">${item.quantidade}</td>
-            <td style="border:1px solid #ccc; padding:5px;">${item.tipo === 'm2' ? `${item.area.toFixed(2)}m²` : '-'}</td>
-            <td style="border:1px solid #ccc; padding:5px;">R$ ${item.valorUnitario.toFixed(2)}</td>
-            <td style="border:1px solid #ccc; padding:5px;">R$ ${item.total.toFixed(2)}</td>
-        </tr>
-    `).join('');
-    
-    const total = carrinho.reduce((sum, item) => sum + item.total, 0);
-    document.getElementById('danfeTotalGeral').innerHTML = `R$ ${total.toFixed(2)}`;
-}
-
-function gerarNumeroOrcamento() {
-    const num = 'ORC-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 10000)).padStart(4, '0');
-    document.getElementById('numeroOrcamento').innerText = num;
-    return num;
-}
-
-function buscarCEP() {
-    const cep = document.getElementById('clienteCEP').value.replace(/\D/g, '');
-    if (cep.length !== 8) return;
-    
-    fetch(`https://viacep.com.br/ws/${cep}/json/`)
-        .then(response => response.json())
-        .then(data => {
-            if (!data.erro) {
-                document.getElementById('clienteEndereco').value = data.logradouro || '';
-                document.getElementById('clienteBairro').value = data.bairro || '';
-                document.getElementById('clienteCidade').value = data.localidade || '';
-                document.getElementById('clienteEstado').value = data.uf || '';
-            }
-        })
-        .catch(error => console.error('Erro ao buscar CEP:', error));
-}
-
-async function salvarOrcamento() {
-    if (carrinho.length === 0) {
-        alert('Adicione itens ao carrinho');
-        return;
-    }
-    
-    const { total } = calcularTotais();
-    const numero = gerarNumeroOrcamento();
-    
-    const orcamento = {
-        numero: numero,
-        data: new Date().toISOString(),
-        cliente: {
-            nome: document.getElementById('clienteNome').value,
-            doc: document.getElementById('clienteDoc').value,
-            telefone: document.getElementById('clienteTelefone').value,
-            whatsapp: document.getElementById('clienteWhatsApp').value,
-            cep: document.getElementById('clienteCEP').value,
-            endereco: document.getElementById('clienteEndereco').value,
-            numero: document.getElementById('clienteNumero').value,
-            bairro: document.getElementById('clienteBairro').value,
-            cidade: document.getElementById('clienteCidade').value,
-            estado: document.getElementById('clienteEstado').value
-        },
-        itens: [...carrinho],
-        total: total,
-        formaPagamento: document.getElementById('formaPagamento').value,
-        status: 'pendente'
-    };
-    
-    await saveOrcamento(orcamento);
-    alert(`Orçamento ${numero} salvo com sucesso!`);
-    await carregarOrcamentos();
-    limparFormulario();
-}
-
-function limparFormulario() {
-    carrinho = [];
-    atualizarListaItens();
-    atualizarPreview();
-    calcularTotais();
-    gerarNumeroOrcamento();
-    
-    document.getElementById('clienteNome').value = '';
-    document.getElementById('clienteDoc').value = '';
-    document.getElementById('clienteTelefone').value = '';
-    document.getElementById('clienteWhatsApp').value = '';
-    document.getElementById('clienteCEP').value = '';
-    document.getElementById('clienteEndereco').value = '';
-    document.getElementById('clienteNumero').value = '';
-    document.getElementById('clienteBairro').value = '';
-    document.getElementById('clienteCidade').value = '';
-    document.getElementById('clienteEstado').value = '';
-}
-
-async function carregarOrcamentos() {
-    const orcamentos = await getOrcamentos();
-    const container = document.getElementById('listaOrcamentos');
-    
-    if (orcamentos.length === 0) {
-        container.innerHTML = '<p>Nenhum orçamento cadastrado</p>';
-        return;
-    }
-    
-    container.innerHTML = orcamentos.map(orc => `
-        <div class="orcamento-item" onclick="abrirOrcamento(${orc.id})">
-            <div class="cliente">${orc.cliente.nome || 'Cliente não informado'}</div>
-            <div>Nº: ${orc.numero}</div>
-            <div class="total">Total: R$ ${orc.total.toFixed(2)}</div>
-            <div><span class="status status-${orc.status}">${getStatusText(orc.status)}</span></div>
-            <small>${new Date(orc.data).toLocaleDateString()}</small>
-            <div style="margin-top: 5px;">
-                <button onclick="event.stopPropagation(); converterParaPedido(${orc.id})" class="success" style="font-size: 11px; padding: 4px 8px;">▶ Iniciar Produção</button>
-            </div>
+        <div class="ref-container">
+            <span class="ref-label">Orçamento nº:</span>
+            <span id="numeroOrcamento" class="ref-value">------</span>
         </div>
-    `).join('');
-}
+    </div>
+</header>
 
-function getStatusText(status) {
-    const statusMap = {
-        'pendente': 'Pendente',
-        'aprovado': 'Aprovado',
-        'producao': 'Em Produção',
-        'andamento': 'Em Andamento',
-        'finalizado': 'Finalizado',
-        'entregue': 'Entregue'
-    };
-    return statusMap[status] || status;
-}
+<!-- ============================================ -->
+<!-- MAIN CONTENT                                 -->
+<!-- ============================================ -->
+<main class="main-content">
 
-async function converterParaPedido(orcamentoId) {
-    const orcamentos = await getOrcamentos();
-    const orcamento = orcamentos.find(o => o.id === orcamentoId);
-    
-    if (!orcamento) return;
-    
-    const pedido = {
-        orcamentoId: orcamento.id,
-        numeroOrcamento: orcamento.numero,
-        cliente: orcamento.cliente,
-        itens: orcamento.itens,
-        total: orcamento.total,
-        dataCriacao: new Date().toISOString(),
-        status: 'producao'
-    };
-    
-    await savePedido(pedido);
-    await updateOrcamento(orcamentoId, { status: 'aprovado' });
-    await carregarOrcamentos();
-    await carregarPedidos();
-    alert('Pedido criado com sucesso!');
-}
+    <!-- LINHA 1: DASHBOARD RESUMIDO -->
+    <div class="dashboard-mini">
+        <div class="dash-card">
+            <span class="dash-icon">📋</span>
+            <span class="dash-label">Orçamentos</span>
+            <span class="dash-value" id="totalOrcamentos">0</span>
+        </div>
+        <div class="dash-card">
+            <span class="dash-icon">🏭</span>
+            <span class="dash-label">Pedidos</span>
+            <span class="dash-value" id="totalPedidos">0</span>
+        </div>
+        <div class="dash-card">
+            <span class="dash-icon">💰</span>
+            <span class="dash-label">Faturamento</span>
+            <span class="dash-value" id="totalFaturamento">R$ 0</span>
+        </div>
+    </div>
 
-async function carregarPedidos() {
-    const pedidos = await getPedidos();
-    
-    const colProducao = document.getElementById('col-producao');
-    const colAndamento = document.getElementById('col-andamento');
-    const colFinalizado = document.getElementById('col-finalizado');
-    const colEntregue = document.getElementById('col-entregue');
-    
-    colProducao.innerHTML = '';
-    colAndamento.innerHTML = '';
-    colFinalizado.innerHTML = '';
-    colEntregue.innerHTML = '';
-    
-    pedidos.forEach(pedido => {
-        const card = document.createElement('div');
-        card.className = 'pedido-card';
-        card.innerHTML = `
-            <div class="cliente">${pedido.cliente.nome || 'Cliente'}</div>
-            <div>Orçamento: ${pedido.numeroOrcamento}</div>
-            <div>Total: R$ ${pedido.total.toFixed(2)}</div>
-            <div style="margin-top: 8px;">
-                <button onclick="mudarStatusPedido(${pedido.id}, 'producao')" class="warning" style="font-size: 10px; padding: 3px 6px;">🟡 Produção</button>
-                <button onclick="mudarStatusPedido(${pedido.id}, 'andamento')" class="warning" style="font-size: 10px; padding: 3px 6px;">🔵 Andamento</button>
-                <button onclick="mudarStatusPedido(${pedido.id}, 'finalizado')" class="success" style="font-size: 10px; padding: 3px 6px;">🟢 Finalizar</button>
-                <button onclick="mudarStatusPedido(${pedido.id}, 'entregue')" class="success" style="font-size: 10px; padding: 3px 6px;">⚫ Entregar</button>
-            </div>
-        `;
+    <!-- LINHA 2: CONTEÚDO PRINCIPAL (2 COLUNAS) -->
+    <div class="content-layout">
         
-        switch(pedido.status) {
-            case 'producao': colProducao.appendChild(card); break;
-            case 'andamento': colAndamento.appendChild(card); break;
-            case 'finalizado': colFinalizado.appendChild(card); break;
-            case 'entregue': colEntregue.appendChild(card); break;
-            default: colProducao.appendChild(card);
-        }
-    });
-}
+        <!-- ======================================= -->
+        <!-- COLUNA ESQUERDA                          -->
+        <!-- ======================================= -->
+        <div class="col-left">
+            
+            <!-- CARD: CLIENTE -->
+            <section class="card">
+                <div class="card-header">
+                    <h3>👤 Dados do Cliente</h3>
+                    <button type="button" class="btn-clear" onclick="limparCliente()" title="Limpar campos">🗑️ Limpar</button>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label>Nome completo *</label>
+                        <input type="text" id="clienteNome" placeholder="Digite o nome do cliente" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>CPF / CNPJ</label>
+                        <input type="text" id="clienteDoc" placeholder="000.000.000-00" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>Telefone</label>
+                        <input type="tel" id="clienteTelefone" placeholder="(11) 0000-0000" autocomplete="off" onchange="copiarTelefoneWhatsApp()">
+                    </div>
+                    <div class="form-group">
+                        <label>WhatsApp</label>
+                        <input type="tel" id="clienteWhatsApp" placeholder="(11) 90000-0000" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>E-mail</label>
+                        <input type="email" id="clienteEmail" placeholder="cliente@email.com" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>CEP</label>
+                        <div class="input-group-cep">
+                            <input type="text" id="clienteCEP" placeholder="00000-000" autocomplete="off" onblur="buscarCEP()">
+                            <button type="button" class="btn-small" onclick="buscarCEP()">🔍 Buscar</button>
+                        </div>
+                    </div>
+                    <div class="form-group full">
+                        <label>Endereço</label>
+                        <input type="text" id="clienteEndereco" placeholder="Rua, Avenida..." autocomplete="off">
+                    </div>
+                    <div class="form-group small">
+                        <label>Número</label>
+                        <input type="text" id="clienteNumero" placeholder="123" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>Bairro</label>
+                        <input type="text" id="clienteBairro" placeholder="Bairro" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>Cidade</label>
+                        <input type="text" id="clienteCidade" placeholder="Cidade" autocomplete="off">
+                    </div>
+                    <div class="form-group small">
+                        <label>UF</label>
+                        <input type="text" id="clienteEstado" placeholder="SP" maxlength="2" autocomplete="off">
+                    </div>
+                </div>
+            </section>
 
-async function mudarStatusPedido(pedidoId, novoStatus) {
-    await updatePedido(pedidoId, { status: novoStatus });
-    await carregarPedidos();
-}
+            <!-- CARD: ADICIONAR PRODUTO -->
+            <section class="card">
+                <h3>📦 Adicionar Produto</h3>
+                <div class="form-group">
+                    <label>Produto</label>
+                    <select id="produto" onchange="selecionarProduto()">
+                        <option value="">-- Selecione um produto --</option>
+                    </select>
+                </div>
+                
+                <div id="medidasInput" class="medidas-group" style="display: none;">
+                    <div class="form-group">
+                        <label>Largura (cm)</label>
+                        <input type="number" id="largura" placeholder="0" step="0.1" oninput="calcularPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>Altura (cm)</label>
+                        <input type="number" id="altura" placeholder="0" step="0.1" oninput="calcularPreview()">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Quantidade</label>
+                    <input type="number" id="quantidade" placeholder="1" value="1" min="1" oninput="calcularPreview()">
+                </div>
+                
+                <!-- Preview do produto antes de adicionar -->
+                <div id="previewCalculo" class="preview-produto"></div>
+                
+                <button class="btn-add" onclick="adicionarItem()">➕ Adicionar ao Carrinho</button>
+            </section>
 
-async function cadastrarNovoProduto() {
-    const nome = document.getElementById('novoProdNome').value;
-    const preco = parseFloat(document.getElementById('novoProdPreco').value);
-    const tipo = document.getElementById('novoProdTipo').value;
-    
-    if (!nome || !preco) {
-        alert('Preencha nome e preço do produto');
-        return;
-    }
-    
-    await addProduto({ nome, preco, tipo });
-    await carregarProdutosSelect();
-    
-    document.getElementById('novoProdNome').value = '';
-    document.getElementById('novoProdPreco').value = '';
-    alert('Produto cadastrado com sucesso!');
-}
+            <!-- CARD: CADASTRAR NOVO PRODUTO -->
+            <section class="card">
+                <h3>➕ Novo Produto</h3>
+                <div class="form-grid small">
+                    <div class="form-group">
+                        <label>Nome do produto</label>
+                        <input type="text" id="novoProdNome" placeholder="Ex: Adesivo Especial" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>Preço</label>
+                        <input type="number" id="novoProdPreco" placeholder="0,00" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <select id="novoProdTipo">
+                            <option value="unid">Unidade</option>
+                            <option value="m2">Metro Quadrado (m²)</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn-secondary" onclick="cadastrarNovoProduto()">💾 Salvar Produto</button>
+            </section>
 
-function enviarWhatsApp() {
-    const clienteNome = document.getElementById('clienteNome').value;
-    const total = document.getElementById('totalGeral').innerText;
-    const numeroOrc = document.getElementById('numeroOrcamento').innerText;
-    
-    let mensagem = `*PRESTIGE COMUNICAÇÃO VISUAL*\n\n`;
-    mensagem += `Olá ${clienteNome || 'cliente'}!\n`;
-    mensagem += `Segue seu orçamento nº ${numeroOrc}\n\n`;
-    mensagem += `*ITENS DO ORÇAMENTO:*\n`;
-    
-    carrinho.forEach(item => {
-        mensagem += `\n📦 ${item.nome}\n`;
-        if (item.tipo === 'm2') {
-            mensagem += `   Medidas: ${item.largura}cm x ${item.altura}cm (${item.area.toFixed(2)}m²)\n`;
-        }
-        mensagem += `   Quantidade: ${item.quantidade}\n`;
-        mensagem += `   Valor Unitário: R$ ${item.valorUnitario.toFixed(2)}\n`;
-        mensagem += `   Subtotal: R$ ${item.total.toFixed(2)}\n`;
-    });
-    
-    mensagem += `\n*TOTAL: R$ ${total}*\n\n`;
-    mensagem += `Forma de pagamento: ${document.getElementById('formaPagamento').options[document.getElementById('formaPagamento').selectedIndex]?.text}\n\n`;
-    mensagem += `Prazo do orçamento: 7 dias úteis\n`;
-    mensagem += `Rua Brasil, 304 - Rudge Ramos - SBC - SP\n`;
-    mensagem += `(11) 92201-8290\n\n`;
-    mensagem += `Deus Seja Sempre Louvado! 🙏`;
-    
-    const whatsappNumber = document.getElementById('clienteWhatsApp').value.replace(/\D/g, '');
-    const url = `https://wa.me/55${whatsappNumber || '11922018290'}?text=${encodeURIComponent(mensagem)}`;
-    window.open(url, '_blank');
-}
+        </div>
 
-function abrirOrcamento(id) {
-    // Implementar visualização detalhada do orçamento
-    alert(`Abrir detalhes do orçamento ${id}`);
-}
+        <!-- ======================================= -->
+        <!-- COLUNA DIREITA                          -->
+        <!-- ======================================= -->
+        <div class="col-right">
+            
+            <!-- CARD: RESUMO DO PEDIDO -->
+            <section class="card sticky">
+                <h3>🛒 Resumo do Pedido</h3>
+                
+                <div id="listaItens" class="item-list">
+                    <p class="empty-message">Nenhum item adicionado</p>
+                </div>
 
-// Adicionar ao window para acesso global
-window.adicionarItem = adicionarItem;
-window.removerItem = removerItem;
-window.editarItem = editarItem;
-window.calcularTotais = calcularTotais;
-window.salvarOrcamento = salvarOrcamento;
-window.enviarWhatsApp = enviarWhatsApp;
-window.buscarCEP = buscarCEP;
-window.toggleMedidas = toggleMedidas;
-window.calcularPreview = calcularPreview;
-window.cadastrarNovoProduto = cadastrarNovoProduto;
-window.converterParaPedido = converterParaPedido;
-window.mudarStatusPedido = mudarStatusPedido;
-window.abrirOrcamento = abrirOrcamento;
+                <!-- Totais -->
+                <div class="totais-area">
+                    <div class="total-row">
+                        <span>Subtotal:</span>
+                        <span id="subtotal">R$ 0,00</span>
+                    </div>
+                    <div class="total-row">
+                        <span>Frete:</span>
+                        <span id="frete">R$ 0,00</span>
+                    </div>
+                    <div class="total-row highlight">
+                        <span>Desconto / Acréscimo:</span>
+                        <span id="desconto">R$ 0,00</span>
+                    </div>
+                    <div class="total-row grand-total">
+                        <span>TOTAL GERAL:</span>
+                        <span id="totalGeral">R$ 0,00</span>
+                    </div>
+                </div>
+
+                <!-- Forma de Pagamento -->
+                <div class="form-group">
+                    <label>Forma de Pagamento</label>
+                    <select id="formaPagamento" onchange="calcularTotais()">
+                        <option value="">-- Selecione --</option>
+                        <option value="pix">PIX (sem juros)</option>
+                        <option value="debito">Débito</option>
+                        <option value="credito_1x">Crédito 1x (+1,5%)</option>
+                        <option value="credito_3x">Crédito 3x (+6%)</option>
+                        <option value="credito_5x">Crédito 5x (+7%)</option>
+                    </select>
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="action-buttons">
+                    <button class="btn-save" onclick="salvarOrcamento()">💾 Salvar Orçamento</button>
+                    <button class="btn-whatsapp" onclick="enviarWhatsApp()">📱 Enviar WhatsApp</button>
+                    <button class="btn-email" onclick="enviarOrcamentoPorEmail()">📧 Enviar E-mail</button>
+                    <button class="btn-pdf" onclick="gerarPDFOrcamento()">📄 Gerar PDF</button>
+                </div>
+            </section>
+
+            <!-- CARD: PRÉ-VISUALIZAÇÃO DANFE -->
+            <section class="card">
+                <h3>📄 Pré-visualização do Documento</h3>
+                <div id="previewDANFE" class="danfe-preview">
+                    <div id="danfeCabecalho" class="danfe-cabecalho"></div>
+                    <table class="danfe-table">
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th width="50">Qtd</th>
+                                <th width="80">Medida</th>
+                                <th width="80">Valor Unit.</th>
+                                <th width="80">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="danfeCorpo">
+                            <tr>
+                                <td colspan="5" class="empty-table">Nenhum item adicionado</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="4" class="total-label">TOTAL GERAL</td>
+                                <td id="danfeTotalGeral" class="total-value">R$ 0,00</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <div id="danfeQRCode" class="danfe-qrcode"></div>
+                    <p class="danfe-observacao">Prazo do orçamento: 7 dias úteis</p>
+                    <p class="danfe-frase">Deus Seja Sempre Louvado! Tudo posso Naquele que me Fortalece!</p>
+                </div>
+            </section>
+
+            <!-- CARD: ORÇAMENTOS SALVOS -->
+            <section class="card">
+                <h3>📋 Orçamentos Salvos</h3>
+                <div id="listaOrcamentos" class="scroll-list">
+                    <p class="empty-message">Nenhum orçamento cadastrado</p>
+                </div>
+            </section>
+
+            <!-- CARD: KANBAN - PRODUÇÃO -->
+            <section class="card">
+                <h3>🏭 Acompanhamento de Pedidos</h3>
+                <div class="kanban-container">
+                    <div class="kanban-col">
+                        <div class="kanban-header producao">🟡 Produção</div>
+                        <div id="col-producao" class="kanban-content"></div>
+                    </div>
+                    <div class="kanban-col">
+                        <div class="kanban-header andamento">🔵 Em Andamento</div>
+                        <div id="col-andamento" class="kanban-content"></div>
+                    </div>
+                    <div class="kanban-col">
+                        <div class="kanban-header finalizado">🟢 Finalizado</div>
+                        <div id="col-finalizado" class="kanban-content"></div>
+                    </div>
+                    <div class="kanban-col">
+                        <div class="kanban-header entregue">⚫ Entregue</div>
+                        <div id="col-entregue" class="kanban-content"></div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+</main>
+
+<!-- ============================================ -->
+<!-- FOOTER                                       -->
+<!-- ============================================ -->
+<footer class="main-footer">
+    <p>Prestige Comunicação Visual - Rua Brasil, 304 - Rudge Ramos - São Bernardo do Campo - SP</p>
+    <p>📞 (11) 92201-8290 | 📧 prestigecvisual@gmail.com</p>
+    <p class="footer-frase">"Tudo posso Naquele que me Fortalece" - Filipenses 4:13</p>
+</footer>
+
+</body>
+</html>
