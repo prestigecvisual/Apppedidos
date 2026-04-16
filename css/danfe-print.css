@@ -1,0 +1,119 @@
+/* ============================================ */
+/* DANFE - ESTILOS PROFISSIONAIS PARA IMPRESSÃO */
+/* ============================================ */
+
+/* Configuração da página para impressão */
+@page {
+    size: A4;
+    margin: 8mm;
+}
+
+@media print {
+    /* Ocultar elementos que não devem ser impressos */
+    .no-print,
+    .painel-controle,
+    button,
+    .action-buttons,
+    header:not(.danfe-header),
+    footer:not(.danfe-footer),
+    .kanban-container,
+    .dashboard-mini {
+        display: none !important;
+    }
+
+    /* Reset para impressão */
+    body {
+        background: white;
+        margin: 0;
+        padding: 0;
+        font-size: 10pt;
+    }
+
+    .container,
+    .danfe-container {
+        margin: 0;
+        padding: 0;
+        border: none;
+        box-shadow: none;
+        background: white;
+        max-width: 100%;
+    }
+
+    /* Bordas do DANFE */
+    .danfe-box,
+    .header-grid,
+    .danfe-table {
+        border: 1px solid black !important;
+    }
+
+    .danfe-box td,
+    .danfe-box th,
+    .danfe-table td,
+    .danfe-table th {
+        border: 1px solid black !important;
+        padding: 4px;
+    }
+
+    /* Garantir que o QR Code seja impresso */
+    #qrcode-container img,
+    .qr-code img {
+        display: block !important;
+        visibility: visible !important;
+    }
+
+    /* Cores em preto e branco para impressão */
+    .bg-gray,
+    .total-row.highlight,
+    tr.total-row {
+        background: #f0f0f0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Evitar quebras de página dentro de elementos importantes */
+    .danfe-box,
+    .header-grid,
+    .flex-footer {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    /* Forçar quebra de página antes do rodapé se necessário */
+    .danfe-footer {
+        page-break-before: avoid;
+    }
+
+    /* Tamanhos de fonte para impressão */
+    .label {
+        font-size: 8pt;
+    }
+
+    .info-empresa,
+    .tipo-doc {
+        font-size: 9pt;
+    }
+
+    .total-value {
+        font-size: 12pt;
+        font-weight: bold;
+    }
+
+    .frase-fe {
+        font-size: 10pt;
+        margin-top: 20px;
+    }
+}
+
+/* Estilos para tela (pré-visualização) */
+.danfe-preview {
+    background: white;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin: 20px auto;
+    max-width: 210mm;
+    padding: 10mm;
+}
+
+.danfe-preview .danfe-box {
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
