@@ -226,4 +226,43 @@ async function enviarPedidoEmail(pedido) {
     corpo += `${"=".repeat(40)}\n\n`;
     corpo += `Olá ${pedido.clienteNome},\n\n`;
     corpo += `Seu pedido foi atualizado!\n\n`;
-    corpo += `📦 PEDID
+    corpo += `📦 PEDIDO Nº: ${pedido.numero}\n`;
+    corpo += `📅 Data de criação: ${pedido.dataCriacao}\n`;
+    corpo += `📍 Status: ${getStatusTexto(pedido.status)}\n`;
+    corpo += `💰 Valor: ${formatarMoeda(pedido.total)}\n\n`;
+    
+    if (pedido.status === "finalizado") {
+        corpo += `✅ Seu pedido foi finalizado! Em breve entraremos em contato para combinar a entrega.\n\n`;
+    } else if (pedido.status === "entregue") {
+        corpo += `🎉 Pedido entregue! Agradecemos pela preferência!\n\n`;
+    }
+    
+    corpo += `📞 Dúvidas? ${DANFE_CONFIG.empresa.telefone}\n`;
+    corpo += `📧 ${DANFE_CONFIG.empresa.email}\n\n`;
+    corpo += `🙏 ${DANFE_CONFIG.empresa.nome}`;
+    
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/enviar-pedido`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                destinatario: clienteEmail,
+                dados: {
+                    ...pedido,
+                    corpo: corpo,
+                    assunto: assunto
+                }
+            })
+        });
+        
+        if (response.ok) {
+            console.log(`E-mail enviado para ${clienteEmail}`);
+            return true;
+        }
+    } catch (error) {
+        console.error("Erro ao enviar e-mail:", error);
+        window.open(`mailto:${clienteEmail}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`);
+    }
+    
+    return true;
+}
